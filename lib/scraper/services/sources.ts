@@ -1,6 +1,6 @@
 import { Filter, ObjectId } from "mongodb";
 import { ensureScraperBootstrap } from "@/lib/scraper/bootstrap";
-import { scraperSourcesCollection } from "@/lib/scraper/db";
+import { scraperRecordsCollection, scraperRunArtifactsCollection, scraperRunsCollection, scraperSourcesCollection } from "@/lib/scraper/db";
 import type { ScraperActor, ScraperSourceDoc, ScraperSourceKind, ScraperSourceListItem } from "@/lib/scraper/types";
 import { isScraperAdminRole, SCRAPER_SOURCE_KINDS } from "@/lib/scraper/types";
 
@@ -42,7 +42,7 @@ export async function listScraperSources(actor: ScraperActor) {
   await ensureScraperBootstrap();
   const sources = await scraperSourcesCollection();
 
-  const docs = (await sources.find(buildSourceAccessQuery(actor)).sort({ scope: 1, createdAt: 1 }).toArray()).filter((item) =>
+  const docs = (await sources.find(buildSourceAccessQuery(actor)).sort({ scope: 1, updatedAt: -1 }).toArray()).filter((item) =>
     SCRAPER_SOURCE_KINDS.includes(item.kind as ScraperSourceKind)
   );
 
@@ -79,6 +79,10 @@ export async function createScraperSource(actor: ScraperActor, input: CreateScra
   if (!name) {
     throw new Error("任务名称不能为空");
   }
+  const goal = typeof input.config.goal === "string" ? input.config.goal.trim() : "";
+  if (!goal) {
+    throw new Error("采集目标不能为空");
+  }
 
   const now = new Date();
   const sources = await scraperSourcesCollection();
@@ -88,7 +92,10 @@ export async function createScraperSource(actor: ScraperActor, input: CreateScra
     scope: "private",
     ownerId: new ObjectId(actor.id),
     enabled: true,
-    config: input.config,
+    config: {
+      ...input.config,
+      goal
+    },
     lastRunAt: null,
     createdAt: now,
     updatedAt: now
@@ -120,7 +127,14 @@ export async function updateScraperSource(actor: ScraperActor, sourceId: string,
   }
 
   if (input.config) {
-    patch.config = input.config;
+    const goal = typeof input.config.goal === "string" ? input.config.goal.trim() : "";
+    if (!goal) {
+      throw new Error("采集目标不能为空");
+    }
+    patch.config = {
+      ...input.config,
+      goal
+    };
   }
 
   const sources = await scraperSourcesCollection();
@@ -134,6 +148,17 @@ export async function deleteScraperSource(actor: ScraperActor, sourceId: string)
     throw new Error("系统任务配置不能删除");
   }
 
-  const sources = await scraperSourcesCollection();
-  await sources.deleteOne({ _id: source._id });
+  const [sources, runs, records, artifacts] = await Promise.all([
+    scraperSourcesCollection(),
+    scraperRunsCollection(),
+    scraperRecordsCollection(),
+    scraperRunArtifactsCollection()
+  ]);
+
+  await Promise.all([
+    sources.deleteOne({ _id: source._id }),
+    runs.deleteMany({ sourceId: source._id! }),
+    records.deleteMany({ sourceId: source._id! }),
+    artifacts.deleteMany({ sourceId: source._id! })
+  ]);
 }

@@ -45,6 +45,14 @@ async function ensureScraperIndexes() {
     scraperRunArtifactsCollection()
   ]);
 
+  const existingRecordIndexes = await records.indexes();
+  const deprecatedUniqueDedupeIndex = existingRecordIndexes.find(
+    (index) => index.unique && index.key?.sourceId === 1 && index.key?.dedupeKey === 1
+  );
+  if (deprecatedUniqueDedupeIndex?.name) {
+    await records.dropIndex(deprecatedUniqueDedupeIndex.name);
+  }
+
   await Promise.all([
     sources.createIndex({ kind: 1, scope: 1, ownerId: 1 }),
     runs.createIndex({ sourceId: 1, createdAt: -1 }),
@@ -55,7 +63,10 @@ async function ensureScraperIndexes() {
         partialFilterExpression: { idempotencyKey: { $type: "string" } }
       }
     ),
-    records.createIndex({ sourceId: 1, dedupeKey: 1 }, { unique: true }),
+    records.createIndex({ runId: 1, kind: 1, url: 1 }, { unique: true }),
+    records.createIndex({ sourceId: 1, dedupeKey: 1 }),
+    records.createIndex({ sourceId: 1, updatedAt: -1 }),
+    records.createIndex({ runId: 1, createdAt: 1 }),
     artifacts.createIndex({ runId: 1, createdAt: -1 })
   ]);
 }

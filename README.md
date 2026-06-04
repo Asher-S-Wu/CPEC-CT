@@ -27,7 +27,7 @@ AI 能力只保留两个国内平台：**MiniMax 官方国内版平台**（`plat
 - **样式**：Tailwind CSS，支持浅色 / 深色 / 跟随系统主题
 - **数据库**：MongoDB
 - **账号**：邮箱 + 密码注册登录，scrypt 密码哈希，HttpOnly 会话 Cookie
-- **AI 接入**：MiniMax 官方国内版平台（对话 `/v1/text/chatcompletion_v2`；图像 `/v1/image_generation`）+ 火山引擎语音识别
+- **AI 接入**：MiniMax 官方国内版平台（对话 `/anthropic/v1/messages`；图像 `/v1/image_generation`）+ 火山引擎语音识别
 
 ## 账号系统
 

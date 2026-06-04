@@ -6,8 +6,8 @@ import {
 import { buildAttachmentTextBlock } from "@/lib/ai/server/files/service";
 import { getAttachmentInputType } from "@/lib/ai/shared/attachments";
 
-// 将一条存储的消息片段转换为 MiniMax chat-completions 的 content 片段。
-// 用户消息支持 text + image_url；附件文档转为文本块；助手历史只保留文本。
+// 将一条存储的消息片段转换为 MiniMax Anthropic messages 的 content 片段。
+// 用户消息支持 text + image；附件文档转为文本块；助手历史只保留文本。
 async function storedPartToMinimaxPart(part, role, options = {}) {
   if (!part || typeof part !== "object") return null;
 
@@ -26,8 +26,12 @@ async function storedPartToMinimaxPart(part, role, options = {}) {
     const { base64Data } = await fetchImageAsBase64(url);
     const mimeType = part.inlineData?.mimeType || "image/jpeg";
     return {
-      type: "image_url",
-      image_url: { url: `data:${mimeType};base64,${base64Data}` },
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: mimeType,
+        data: base64Data,
+      },
     };
   }
 
@@ -96,8 +100,12 @@ export async function buildCurrentUserMessage({ prompt, images, attachments, fil
       if (!img?.url) continue;
       const { base64Data, mimeType } = await fetchImageAsBase64(img.url);
       content.push({
-        type: "image_url",
-        image_url: { url: `data:${mimeType};base64,${base64Data}` },
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mimeType,
+          data: base64Data,
+        },
       });
     }
   }

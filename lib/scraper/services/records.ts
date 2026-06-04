@@ -33,7 +33,7 @@ export async function upsertScraperRecord(input: {
   };
 
   await records.updateOne(
-    { sourceId: sourceObjectId, dedupeKey: input.dedupeKey },
+    { runId: runObjectId, kind: input.kind, url: input.url },
     {
       $set: patch,
       $setOnInsert: {
@@ -51,9 +51,13 @@ export async function listScraperRecords(filter: {
   sourceIds?: string[];
   kinds?: string[];
   q?: string;
-  limit?: number;
+  limit?: number | null;
 }) {
   await ensureScraperBootstrap();
+  if (Array.isArray(filter.sourceIds) && filter.sourceIds.length === 0) {
+    return [];
+  }
+
   const records = await scraperRecordsCollection();
   const query: Record<string, unknown> = {};
 
@@ -69,5 +73,12 @@ export async function listScraperRecords(filter: {
     query.$or = [{ title: { $regex: filter.q, $options: "i" } }, { url: { $regex: filter.q, $options: "i" } }];
   }
 
-  return records.find(query, { sort: { publishedAt: -1, updatedAt: -1 }, limit: filter.limit ?? 200 }).toArray();
+  const options: { sort: Record<string, 1 | -1>; limit?: number } = {
+    sort: { publishedAt: -1, updatedAt: -1 }
+  };
+  if (typeof filter.limit === "number" && Number.isFinite(filter.limit) && filter.limit > 0) {
+    options.limit = filter.limit;
+  }
+
+  return records.find(query, options).toArray();
 }

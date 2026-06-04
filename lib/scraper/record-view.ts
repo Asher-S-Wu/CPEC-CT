@@ -2,10 +2,20 @@ import type { ScraperRecordDoc, ScraperResultView } from "@/lib/scraper/types";
 
 function safeStringify(value: unknown) {
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(value) || "";
   } catch {
     return "";
   }
+}
+
+function formatDateTime(value?: Date | null) {
+  return value
+    ? new Intl.DateTimeFormat("zh-CN", {
+        dateStyle: "short",
+        timeStyle: "short",
+        timeZone: "Asia/Shanghai"
+      }).format(value)
+    : "";
 }
 
 function shortText(value: string, maxLength = 120) {
@@ -67,25 +77,44 @@ export function toScraperResultView(record: ScraperRecordDoc): ScraperResultView
   };
 }
 
-export function toScraperExportRow(record: ScraperRecordDoc) {
-  const view = toScraperResultView(record);
+export interface ScraperExportContext {
+  sourceNames?: Map<string, string>;
+  runCreatedAt?: Map<string, Date>;
+}
+
+export function toScraperExportRow(record: ScraperRecordDoc, context: ScraperExportContext = {}) {
+  const page = getPagePayload(record);
+  const sourceId = String(record.sourceId);
+  const runId = String(record.runId);
+  const finalUrl =
+    page.finalUrl ||
+    (typeof record.payload.finalUrl === "string" ? record.payload.finalUrl : "") ||
+    record.url;
+  const outputFormats = [
+    page.markdown ? "markdown" : "",
+    page.summary ? "summary" : "",
+    page.links.length > 0 ? "links" : "",
+    page.extractedJson ? "json" : "",
+    page.statusCode !== null ? "status" : ""
+  ].filter(Boolean).join(", ");
 
   return {
-    类型: view.kind,
-    标题: view.title,
-    原始链接: view.url,
-    最终链接: view.finalUrl,
-    发布时间: view.publishedAt
-      ? new Intl.DateTimeFormat("zh-CN", {
-          dateStyle: "short",
-          timeStyle: "short",
-          timeZone: "Asia/Shanghai"
-        }).format(view.publishedAt)
-      : "",
-    状态码: view.statusCode ?? "",
-    输出格式: view.outputFormats,
-    摘要: view.summary,
-    JSON提取: view.jsonText,
-    指标: view.metricsText
+    任务名称: context.sourceNames?.get(sourceId) || "",
+    运行ID: runId,
+    运行时间: formatDateTime(context.runCreatedAt?.get(runId) || null),
+    类型: record.kind,
+    标题: record.title,
+    原始链接: record.url,
+    最终链接: finalUrl,
+    发布时间: formatDateTime(record.publishedAt ?? null),
+    状态码: page.statusCode ?? "",
+    输出格式: outputFormats,
+    摘要: page.summary,
+    正文Markdown: page.markdown,
+    JSON提取: page.extractedJson ? safeStringify(page.extractedJson) : "",
+    链接列表: page.links.length > 0 ? safeStringify(page.links) : "",
+    指标: safeStringify(record.metrics),
+    创建时间: formatDateTime(record.createdAt),
+    更新时间: formatDateTime(record.updatedAt)
   };
 }

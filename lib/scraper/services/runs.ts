@@ -15,8 +15,14 @@ export interface ScraperRunReportRecord {
   kind: string;
   title: string;
   url: string;
+  finalUrl: string;
   summary: string;
   markdown: string;
+  jsonText: string;
+  links: string[];
+  statusCode: number | null;
+  publishedAt: Date | null;
+  createdAt: Date;
 }
 
 export interface ScraperRunReportItem {
@@ -31,6 +37,36 @@ export interface ScraperRunReportItem {
   completedAt: Date | null;
   canDelete: boolean;
   records: ScraperRunReportRecord[];
+}
+
+function safeStringify(value: unknown) {
+  try {
+    return JSON.stringify(value) || "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeRecordLinks(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return item;
+      }
+      if (item && typeof item === "object" && typeof (item as { url?: unknown }).url === "string") {
+        return (item as { url: string }).url;
+      }
+      if (item && typeof item === "object" && typeof (item as { href?: unknown }).href === "string") {
+        return (item as { href: string }).href;
+      }
+      return "";
+    })
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function canDeleteScraperRun(actor: ScraperActor, run: ScraperRunDoc, source: ScraperSourceDoc) {
@@ -181,7 +217,22 @@ export async function listScraperRuns(actor: ScraperActor, limit = 200) {
   }));
 }
 
-export async function listScraperRunReports(actor: ScraperActor, limit = 50) {
+export async function listScraperRunsByIds(runIds: string[]) {
+  await ensureScraperBootstrap();
+  const objectIds = runIds.filter(Boolean).map((item) => new ObjectId(item));
+  if (objectIds.length === 0) {
+    return [];
+  }
+
+  const runs = await scraperRunsCollection();
+  const docs = await runs.find({ _id: { $in: objectIds } }).toArray();
+  return docs.map((item) => ({
+    id: String(item._id),
+    createdAt: item.createdAt
+  }));
+}
+
+export async function listScraperRunReports(actor: ScraperActor, limit = 50, filter?: { sourceIds?: string[] }) {
   await ensureScraperBootstrap();
   const sources = await scraperSourcesCollection();
   const sourceQuery: Filter<ScraperSourceDoc> = isScraperAdminRole(actor.role)
@@ -193,7 +244,10 @@ export async function listScraperRunReports(actor: ScraperActor, limit = 50) {
 
   const ownedSources = await sources.find(sourceQuery).toArray();
   const sourceMap = new Map(ownedSources.map((s) => [String(s._id), s]));
-  const ownedSourceIds = ownedSources.map((s) => s._id);
+  const requestedSourceIds = new Set((filter?.sourceIds || []).filter(Boolean));
+  const ownedSourceIds = ownedSources
+    .filter((source) => requestedSourceIds.size === 0 || requestedSourceIds.has(String(source._id)))
+    .map((s) => s._id);
 
   if (ownedSourceIds.length === 0) return [];
 
@@ -232,8 +286,14 @@ export async function listScraperRunReports(actor: ScraperActor, limit = 50) {
         kind: rec.kind,
         title: rec.title,
         url: rec.url,
+        finalUrl: typeof rec.payload?.finalUrl === "string" ? rec.payload.finalUrl : rec.url,
         summary: typeof rec.payload?.summary === "string" ? rec.payload.summary : "",
-        markdown: typeof rec.payload?.markdown === "string" ? rec.payload.markdown : ""
+        markdown: typeof rec.payload?.markdown === "string" ? rec.payload.markdown : "",
+        jsonText: rec.payload?.extractedJson ? safeStringify(rec.payload.extractedJson) : "",
+        links: normalizeRecordLinks(rec.payload?.links),
+        statusCode: typeof rec.payload?.statusCode === "number" ? rec.payload.statusCode : null,
+        publishedAt: rec.publishedAt ?? null,
+        createdAt: rec.createdAt
       }))
     };
   });

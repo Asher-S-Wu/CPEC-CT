@@ -11,9 +11,13 @@ import { formatScraperDateTime } from "@/lib/scraper/utils";
 import { CalendarDays, FileText, Link2, Trash2, X } from "lucide-react";
 import type { ScraperRunReportItem } from "@/lib/scraper/services/runs";
 
-type ReportItem = Omit<ScraperRunReportItem, "createdAt" | "completedAt"> & {
+type ReportItem = Omit<ScraperRunReportItem, "createdAt" | "completedAt" | "records"> & {
   createdAt: string;
   completedAt: string | null;
+  records: Array<Omit<ScraperRunReportItem["records"][number], "publishedAt" | "createdAt"> & {
+    publishedAt: string | null;
+    createdAt: string;
+  }>;
 };
 
 const statusConfig = {
@@ -34,6 +38,13 @@ function formatDateLabel(value?: string | null) {
   }
 
   return formatScraperDateTime(new Date(value));
+}
+
+function formatStatusCode(value: number | null) {
+  if (typeof value !== "number") {
+    return "无状态码";
+  }
+  return `状态码 ${value}`;
 }
 
 export function ReportsList({ initialReports }: { initialReports: ReportItem[] }) {
@@ -162,6 +173,7 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
                         <FileText className="h-3.5 w-3.5" />
                         工具调用 {report.toolCalls} 次
                       </span>
+                      <span>完成时间 {formatDateLabel(report.completedAt)}</span>
                     </div>
                   </div>
 
@@ -286,14 +298,66 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
                                 {record.url}
                               </a>
                             </div>
-                            <Badge variant="outline" className="shrink-0 font-normal">
-                              {record.kind.replace("_result", "")}
-                            </Badge>
+                            <div className="flex shrink-0 flex-wrap gap-2">
+                              <Badge variant="outline" className="font-normal">
+                                {record.kind.replace("_result", "")}
+                              </Badge>
+                              <Badge variant={record.statusCode && record.statusCode >= 400 ? "warning" : "secondary"} className="font-normal">
+                                {formatStatusCode(record.statusCode)}
+                              </Badge>
+                            </div>
                           </div>
 
-                          {excerpt ? (
+                          <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+                            <div>最终链接：<span className="break-all text-foreground/80">{record.finalUrl || record.url}</span></div>
+                            <div>采集时间：<span className="text-foreground/80">{formatDateLabel(record.createdAt)}</span></div>
+                            <div>发布时间：<span className="text-foreground/80">{formatDateLabel(record.publishedAt)}</span></div>
+                            <div>链接数量：<span className="text-foreground/80">{record.links.length}</span></div>
+                          </div>
+
+                          {record.summary ? (
+                            <div className="mt-3 rounded-[var(--radius-md)] bg-muted/40 px-3 py-3 text-sm leading-6 text-foreground">
+                              <div className="mb-1 text-xs font-semibold text-muted-foreground">摘要</div>
+                              {record.summary}
+                            </div>
+                          ) : null}
+
+                          {record.markdown ? (
+                            <div className="mt-3 rounded-[var(--radius-md)] bg-muted/40 px-3 py-3 text-sm leading-6 text-foreground">
+                              <div className="mb-1 text-xs font-semibold text-muted-foreground">正文预览</div>
+                              <div className="whitespace-pre-wrap">{shortText(record.markdown, 1800)}</div>
+                            </div>
+                          ) : !record.summary && excerpt ? (
                             <div className="mt-3 rounded-[var(--radius-md)] bg-muted/40 px-3 py-3 text-sm leading-6 text-foreground">
                               {excerpt}
+                            </div>
+                          ) : null}
+
+                          {record.jsonText ? (
+                            <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-muted/30 px-3 py-3">
+                              <div className="mb-1 text-xs font-semibold text-muted-foreground">JSON 提取</div>
+                              <pre className="custom-scrollbar max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-foreground">
+                                {shortText(record.jsonText, 2400)}
+                              </pre>
+                            </div>
+                          ) : null}
+
+                          {record.links.length > 0 ? (
+                            <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-muted/30 px-3 py-3">
+                              <div className="mb-2 text-xs font-semibold text-muted-foreground">链接列表</div>
+                              <div className="custom-scrollbar max-h-40 space-y-1 overflow-auto">
+                                {record.links.slice(0, 30).map((link, linkIndex) => (
+                                  <a
+                                    key={`${link}-${linkIndex}`}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block break-all text-xs text-primary hover:underline"
+                                  >
+                                    {link}
+                                  </a>
+                                ))}
+                              </div>
                             </div>
                           ) : null}
                         </div>

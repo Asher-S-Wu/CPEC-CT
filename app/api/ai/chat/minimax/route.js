@@ -34,6 +34,13 @@ import {
 } from '@/lib/ai/server/chat/requestConfig';
 import { resolveMinimaxProviderConfig } from '@/lib/ai/modelRoutes';
 import {
+    MINIMAX_ANTHROPIC_MESSAGES_PATH,
+    buildMinimaxThinking,
+    createMinimaxAnthropicHeaders,
+    normalizeMinimaxMaxTokens,
+    readAnthropicErrorMessage,
+} from '@/lib/ai/server/minimax/anthropic';
+import {
     buildMinimaxMessagesFromHistory,
     buildCurrentUserMessage,
 } from '@/app/api/ai/minimax/minimaxHelpers';
@@ -48,7 +55,7 @@ import { logError } from '@/lib/logger';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MINIMAX_MAX_TOKEN_CAP = 128000;
+const MINIMAX_MAX_TOKEN_CAP = 524288;
 
 export async function POST(req) {
     let writePermitTime = null;
@@ -192,7 +199,7 @@ export async function POST(req) {
         } catch (error) {
             return Response.json({ error: error?.message || '配置无效' }, { status: 400 });
         }
-        const normalizedMaxTokens = clampMaxTokens(maxTokens, MINIMAX_MAX_TOKEN_CAP);
+        const normalizedMaxTokens = normalizeMinimaxMaxTokens(clampMaxTokens(maxTokens, MINIMAX_MAX_TOKEN_CAP), 8192);
 
         const userSystemPrompt = parseSystemPrompt(config?.systemPrompt);
         const systemPromptSuffix = parseSystemPrompt(config?.systemPromptSuffix);
@@ -330,30 +337,19 @@ export async function POST(req) {
                         userSystemPrompt, systemPromptSuffix, enableWebSearch, searchContextSection: '',
                     });
 
-                    const requestMessages = isNonEmptyString(systemPrompt)
-                        ? [{ role: 'system', content: systemPrompt }, ...minimaxMessages]
-                        : minimaxMessages;
-
                     const requestBody = {
                         model: apiModel,
-                        messages: requestMessages,
-                        max_completion_tokens: normalizedMaxTokens,
+                        ...(isNonEmptyString(systemPrompt) ? { system: systemPrompt } : {}),
+                        messages: minimaxMessages,
+                        max_tokens: normalizedMaxTokens,
                         stream: true,
-                        stream_options: { include_usage: true },
-                        // 默认自适应思考（官方推荐），并拆分返回思考内容
-                        thinking: { type: 'adaptive' },
-                        reasoning_split: true,
-                        // MiniMax-M3 官方推荐参数
+                        thinking: buildMinimaxThinking(),
                         temperature: 1,
-                        top_p: 0.95,
                     };
 
-                    const upstream = await fetch(`${baseUrl}/text/chatcompletion_v2`, {
+                    const upstream = await fetch(`${baseUrl}${MINIMAX_ANTHROPIC_MESSAGES_PATH}`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`,
-                        },
+                        headers: createMinimaxAnthropicHeaders(apiKey),
                         body: JSON.stringify(requestBody),
                         signal: req?.signal,
                     });
@@ -362,8 +358,7 @@ export async function POST(req) {
                         let msg = `模型请求失败（${upstream.status}）`;
                         try {
                             const data = await upstream.json();
-                            if (data?.error?.message) msg = data.error.message;
-                            else if (data?.message) msg = data.message;
+                            msg = readAnthropicErrorMessage(data, upstream.status);
                         } catch { /* ignore */ }
                         const err = new Error(msg);
                         err.status = upstream.status;
@@ -400,23 +395,38 @@ export async function POST(req) {
                             let parsed;
                             try { parsed = JSON.parse(data); } catch { continue; }
 
-                            const delta = parsed?.choices?.[0]?.delta;
-                            if (!delta) continue;
+                            if (parsed?.type === 'error') {
+                                throw new Error(readAnthropicErrorMessage(parsed, upstream.status));
+                            }
 
-                            // 推理内容（MiniMax 官方字段 reasoning_content，需 reasoning_split 开启）
-                            const reasoningChunk = delta.reasoning_content ?? delta.reasoning;
-                            if (isNonEmptyString(reasoningChunk)) {
+                            if (parsed?.type === 'content_block_start') {
+                                const block = parsed.content_block;
+                                if (block?.type === 'thinking' && isNonEmptyString(block.thinking)) {
+                                    fullThought += block.thinking;
+                                    sendEvent({ type: 'thought', content: block.thinking });
+                                }
+                                if (block?.type === 'text' && isNonEmptyString(block.text)) {
+                                    fullText += block.text;
+                                    sendEvent({ type: 'text', content: block.text });
+                                }
+                                continue;
+                            }
+
+                            if (parsed?.type !== 'content_block_delta') continue;
+
+                            const delta = parsed.delta;
+                            if (delta?.type === 'thinking_delta' && isNonEmptyString(delta.thinking)) {
+                                const reasoningChunk = delta.thinking;
                                 fullThought += reasoningChunk;
                                 sendEvent({ type: 'thought', content: reasoningChunk });
                             }
 
-                            if (isNonEmptyString(delta.content)) {
-                                fullText += delta.content;
-                                sendEvent({ type: 'text', content: delta.content });
+                            if (delta?.type === 'text_delta' && isNonEmptyString(delta.text)) {
+                                fullText += delta.text;
+                                sendEvent({ type: 'text', content: delta.text });
                             }
 
-                            // 联网搜索注解 / 引用
-                            const annotations = parsed?.choices?.[0]?.delta?.annotations || parsed?.choices?.[0]?.message?.annotations;
+                            const annotations = parsed?.delta?.annotations || parsed?.message?.annotations;
                             if (Array.isArray(annotations)) {
                                 const urlCitations = annotations
                                     .filter((a) => a?.type === 'url_citation' && a?.url_citation?.url)

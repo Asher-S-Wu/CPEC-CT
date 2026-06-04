@@ -3,6 +3,7 @@ import { requireApiSession } from "@/lib/auth";
 import { failJson } from "@/lib/api";
 import { buildScraperFlatWorkbook } from "@/lib/scraper/services/export";
 import { listScraperRecords } from "@/lib/scraper/services/records";
+import { listScraperRunsByIds } from "@/lib/scraper/services/runs";
 import { listScraperSources } from "@/lib/scraper/services/sources";
 import { toScraperActor } from "@/lib/scraper/types";
 
@@ -21,15 +22,21 @@ export async function GET(request: NextRequest) {
       requestedSourceIds.length > 0
         ? requestedSourceIds.filter((item) => allowedSourceIds.has(item))
         : Array.from(allowedSourceIds);
+    const limitValue = request.nextUrl.searchParams.get("limit");
+    const limit = limitValue ? Number(limitValue) : null;
 
     const records = await listScraperRecords({
       sourceIds,
       kinds: request.nextUrl.searchParams.getAll("kind"),
       q: request.nextUrl.searchParams.get("q") || "",
-      limit: Number(request.nextUrl.searchParams.get("limit") || 1000)
+      limit
     });
 
-    const buffer = buildScraperFlatWorkbook(records);
+    const runs = await listScraperRunsByIds(Array.from(new Set(records.map((item) => String(item.runId)))));
+    const buffer = buildScraperFlatWorkbook(records, {
+      sourceNames: new Map(sources.map((item) => [item.id, item.name])),
+      runCreatedAt: new Map(runs.map((item) => [item.id, item.createdAt]))
+    });
     return new Response(buffer, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

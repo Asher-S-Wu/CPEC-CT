@@ -356,10 +356,7 @@ export async function runAgentSource(source: ScraperSourceDoc, run: ScraperRunDo
       model,
       contents,
       generationConfig: {
-        temperature: 0.2,
-        thinkingConfig: {
-          thinkingLevel: "HIGH"
-        }
+        temperature: 0.2
       }
     };
     if (remaining > 0) {
