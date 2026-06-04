@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState, useEffect, useRef } from "react";
+import { BrandMark } from "@/components/brand/brand-logo";
 import { useAppTheme, type ThemeMode } from "@/components/layout/app-theme-provider";
 import { NavLinks, type NavigationItem } from "@/components/navigation/nav-links";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,7 @@ function SidebarContent({ onNavigate, collapsed }: { onNavigate?: () => void; co
   return (
     <div className="app-sidebar-surface">
       <div className={cn("app-sidebar-brand", collapsed && "justify-center px-2")}>
-        <div className="app-sidebar-mark">智</div>
+        <BrandMark className="app-sidebar-mark" />
         {!collapsed && (
           <div className="min-w-0">
             <div className="app-sidebar-title truncate">智创 AI 工作台</div>

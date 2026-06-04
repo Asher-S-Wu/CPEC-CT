@@ -31,11 +31,10 @@ import {
 } from '@/lib/ai/server/chat/requestConfig';
 import { resolveMinimaxProviderConfig } from '@/lib/ai/modelRoutes';
 import {
-    MINIMAX_ANTHROPIC_MESSAGES_PATH,
     buildMinimaxThinking,
-    createMinimaxAnthropicHeaders,
+    createMinimaxAnthropicClient,
     getMinimaxMaxTokens,
-    readAnthropicErrorMessage,
+    normalizeAnthropicSdkError,
 } from '@/lib/ai/server/minimax/anthropic';
 import {
     buildMinimaxMessagesFromHistory,
@@ -123,6 +122,7 @@ export async function POST(req) {
         let previousUpdatedAt = currentConversation?.updatedAt ? new Date(currentConversation.updatedAt) : new Date();
 
         const { baseUrl, apiKey } = resolveMinimaxProviderConfig();
+        const minimaxClient = createMinimaxAnthropicClient({ baseUrl, apiKey });
         const apiModel = model;
 
         const currentAttachments = Array.isArray(config?.attachments)
@@ -328,28 +328,9 @@ export async function POST(req) {
                         ...(isNonEmptyString(systemPrompt) ? { system: systemPrompt } : {}),
                         messages: minimaxMessages,
                         max_tokens: maxTokens,
-                        stream: true,
                         thinking: buildMinimaxThinking(),
                         temperature: 1,
                     };
-
-                    const upstream = await fetch(`${baseUrl}${MINIMAX_ANTHROPIC_MESSAGES_PATH}`, {
-                        method: 'POST',
-                        headers: createMinimaxAnthropicHeaders(apiKey),
-                        body: JSON.stringify(requestBody),
-                        signal: req?.signal,
-                    });
-
-                    if (!upstream.ok || !upstream.body) {
-                        let msg = `模型请求失败（${upstream.status}）`;
-                        try {
-                            const data = await upstream.json();
-                            msg = readAnthropicErrorMessage(data, upstream.status);
-                        } catch { /* ignore */ }
-                        const err = new Error(msg);
-                        err.status = upstream.status;
-                        throw err;
-                    }
 
                     const pushCitations = (items) => {
                         for (const item of items) {
@@ -359,67 +340,48 @@ export async function POST(req) {
                         }
                     };
 
-                    const reader = upstream.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-
-                    while (true) {
+                    const stream = minimaxClient.messages.stream(requestBody, { signal: req?.signal });
+                    for await (const parsed of stream) {
                         if (clientAborted) break;
-                        const { value, done } = await reader.read();
-                        if (done) break;
-                        buffer += decoder.decode(value, { stream: true });
 
-                        let nlIndex;
-                        while ((nlIndex = buffer.indexOf('\n')) !== -1) {
-                            const line = buffer.slice(0, nlIndex).trim();
-                            buffer = buffer.slice(nlIndex + 1);
-                            if (!line || line.startsWith(':')) continue;
-                            if (!line.startsWith('data:')) continue;
-                            const data = line.slice(5).trim();
-                            if (data === '[DONE]') { buffer = ''; break; }
-
-                            let parsed;
-                            try { parsed = JSON.parse(data); } catch { continue; }
-
-                            if (parsed?.type === 'error') {
-                                throw new Error(readAnthropicErrorMessage(parsed, upstream.status));
+                        if (parsed?.type === 'content_block_start') {
+                            const block = parsed.content_block;
+                            if (block?.type === 'thinking' && isNonEmptyString(block.thinking)) {
+                                fullThought += block.thinking;
+                                sendEvent({ type: 'thought', content: block.thinking });
                             }
-
-                            if (parsed?.type === 'content_block_start') {
-                                const block = parsed.content_block;
-                                if (block?.type === 'thinking' && isNonEmptyString(block.thinking)) {
-                                    fullThought += block.thinking;
-                                    sendEvent({ type: 'thought', content: block.thinking });
-                                }
-                                if (block?.type === 'text' && isNonEmptyString(block.text)) {
-                                    fullText += block.text;
-                                    sendEvent({ type: 'text', content: block.text });
-                                }
-                                continue;
+                            if (block?.type === 'text' && isNonEmptyString(block.text)) {
+                                fullText += block.text;
+                                sendEvent({ type: 'text', content: block.text });
                             }
-
-                            if (parsed?.type !== 'content_block_delta') continue;
-
-                            const delta = parsed.delta;
-                            if (delta?.type === 'thinking_delta' && isNonEmptyString(delta.thinking)) {
-                                const reasoningChunk = delta.thinking;
-                                fullThought += reasoningChunk;
-                                sendEvent({ type: 'thought', content: reasoningChunk });
-                            }
-
-                            if (delta?.type === 'text_delta' && isNonEmptyString(delta.text)) {
-                                fullText += delta.text;
-                                sendEvent({ type: 'text', content: delta.text });
-                            }
-
-                            const annotations = parsed?.delta?.annotations || parsed?.message?.annotations;
-                            if (Array.isArray(annotations)) {
-                                const urlCitations = annotations
-                                    .filter((a) => a?.type === 'url_citation' && a?.url_citation?.url)
-                                    .map((a) => ({ url: a.url_citation.url, title: a.url_citation.title }));
-                                if (urlCitations.length) pushCitations(urlCitations);
-                            }
+                            continue;
                         }
+
+                        if (parsed?.type !== 'content_block_delta') continue;
+
+                        const delta = parsed.delta;
+                        if (delta?.type === 'thinking_delta' && isNonEmptyString(delta.thinking)) {
+                            const reasoningChunk = delta.thinking;
+                            fullThought += reasoningChunk;
+                            sendEvent({ type: 'thought', content: reasoningChunk });
+                        }
+
+                        if (delta?.type === 'text_delta' && isNonEmptyString(delta.text)) {
+                            fullText += delta.text;
+                            sendEvent({ type: 'text', content: delta.text });
+                        }
+
+                        const annotations = parsed?.delta?.annotations || parsed?.message?.annotations;
+                        if (Array.isArray(annotations)) {
+                            const urlCitations = annotations
+                                .filter((a) => a?.type === 'url_citation' && a?.url_citation?.url)
+                                .map((a) => ({ url: a.url_citation.url, title: a.url_citation.title }));
+                            if (urlCitations.length) pushCitations(urlCitations);
+                        }
+                    }
+
+                    if (!clientAborted) {
+                        await stream.finalMessage();
                     }
 
                     if (clientAborted) {
@@ -461,6 +423,7 @@ export async function POST(req) {
                     }
                     controller.close();
                 } catch (err) {
+                    const error = normalizeAnthropicSdkError(err);
                     if (clientAborted) {
                         try { await rollbackCurrentTurn(); } catch { /* ignore */ }
                         try { controller.close(); } catch { /* ignore */ }
@@ -468,14 +431,14 @@ export async function POST(req) {
                     }
                     try { await rollbackCurrentTurn(); } catch { /* ignore */ }
                     try {
-                        const errorPayload = JSON.stringify({ type: 'stream_error', message: err?.message || 'Unknown error' });
+                        const errorPayload = JSON.stringify({ type: 'stream_error', message: error?.message || 'Unknown error' });
                         const padding = !paddingSent ? SSE_PADDING : '';
                         paddingSent = true;
                         controller.enqueue(encoder.encode(`data: ${errorPayload}${padding}\n\n`));
                         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                         controller.close();
                     } catch {
-                        controller.error(err);
+                        controller.error(error);
                     }
                 } finally {
                     if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }

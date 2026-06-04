@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
 import {
-  MINIMAX_ANTHROPIC_MESSAGES_PATH,
   buildMinimaxThinking,
-  createMinimaxAnthropicHeaders,
+  createMinimaxAnthropicClient,
   getAnthropicTextFromContent,
   getMinimaxMaxTokens,
+  normalizeAnthropicSdkError,
   normalizeAnthropicJsonSchema,
-  readAnthropicErrorMessage
 } from "@/lib/ai/server/minimax/anthropic";
 
 // 通过 MiniMax Anthropic 兼容接口调用 MiniMax-M3 驱动数据采集智能体。
@@ -40,7 +39,7 @@ type AnthropicMessage = {
 };
 
 function getBaseUrl() {
-  return "https://api.minimaxi.com/anthropic/v1";
+  return "https://api.minimaxi.com/anthropic";
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -150,22 +149,16 @@ export async function callMinimaxAgent(input: {
     requestBody.tools = tools;
   }
 
-  const response = await fetch(`${getBaseUrl()}${MINIMAX_ANTHROPIC_MESSAGES_PATH}`, {
-    method: "POST",
-    headers: createMinimaxAnthropicHeaders(input.apiKey),
-    body: JSON.stringify(requestBody)
-  });
-
-  const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json")
-    ? await response.json().catch(() => null)
-    : await response.text().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(String(readAnthropicErrorMessage(data, response.status)).slice(0, 500));
+  const client = createMinimaxAnthropicClient({ baseUrl: getBaseUrl(), apiKey: input.apiKey });
+  try {
+    return (await client.messages.create(requestBody as any)) as unknown as Record<string, unknown>;
+  } catch (error) {
+    const normalized = normalizeAnthropicSdkError(error);
+    if (normalized instanceof Error) {
+      normalized.message = normalized.message.slice(0, 500);
+    }
+    throw normalized;
   }
-
-  return data;
 }
 
 export function extractMinimaxText(response: any) {
