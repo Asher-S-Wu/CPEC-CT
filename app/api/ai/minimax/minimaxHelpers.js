@@ -5,6 +5,7 @@ import {
 } from "@/app/api/ai/chat/utils";
 import { buildAttachmentTextBlock } from "@/lib/ai/server/files/service";
 import { getAttachmentInputType } from "@/lib/ai/shared/attachments";
+import { getMinimaxAnthropicContentBlocks } from "@/lib/ai/shared/minimaxAnthropicState";
 
 // 将一条存储的消息片段转换为 MiniMax Anthropic messages 的 content 片段。
 // 用户消息支持 text + image；附件文档转为文本块；助手历史只保留文本。
@@ -62,7 +63,15 @@ export async function buildMinimaxMessagesFromHistory(messages, options = {}) {
 
     const role = msg.role === "model" ? "assistant" : "user";
 
-    // 助手历史优先复用纯文本，避免重复携带图片造成上下文膨胀。
+    const providerContent = role === "assistant"
+      ? getMinimaxAnthropicContentBlocks(msg.providerState)
+      : null;
+    if (providerContent) {
+      result.push({ role: "assistant", content: providerContent });
+      continue;
+    }
+
+    // 没有 MiniMax 原始内容块的助手文本按普通 text 内容发送。
     if (role === "assistant" && isNonEmptyString(msg?.content)) {
       result.push({ role: "assistant", content: msg.content });
       continue;

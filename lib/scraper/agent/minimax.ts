@@ -7,6 +7,10 @@ import {
   normalizeAnthropicSdkError,
   normalizeAnthropicJsonSchema,
 } from "@/lib/ai/server/minimax/anthropic";
+import {
+  addMinimaxCacheControlToLastTool,
+  buildMinimaxAnthropicRequest,
+} from "@/lib/ai/shared/minimaxAnthropicState";
 
 // 通过 MiniMax Anthropic 兼容接口调用 MiniMax-M3 驱动数据采集智能体。
 // 工具调用轮次会完整回传 assistant content，保留 thinking/text/tool_use 上下文。
@@ -135,12 +139,16 @@ export async function callMinimaxAgent(input: {
   toolConfig?: Record<string, unknown>;
 }) {
   const messages = agentContentsToAnthropicMessages(input.contents);
-  const tools = agentToolsToAnthropicTools(input.tools);
+  const tools = addMinimaxCacheControlToLastTool(agentToolsToAnthropicTools(input.tools));
   const temperature = (input.generationConfig as { temperature?: number } | undefined)?.temperature;
+  const minimaxRequestPrompt = buildMinimaxAnthropicRequest({
+    systemText: "",
+    messages,
+  });
 
   const requestBody: Record<string, unknown> = {
     model: input.model,
-    messages,
+    messages: minimaxRequestPrompt.messages,
     max_tokens: getMinimaxMaxTokens(),
     thinking: buildMinimaxThinking(),
     temperature: typeof temperature === "number" ? temperature : 1

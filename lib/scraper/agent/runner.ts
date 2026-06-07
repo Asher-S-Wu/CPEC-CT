@@ -354,10 +354,7 @@ export async function runAgentSource(source: ScraperSourceDoc, run: ScraperRunDo
     const callConfig: Record<string, unknown> = {
       apiKey: modelEnv.apiKey,
       model,
-      contents,
-      generationConfig: {
-        temperature: 0.2
-      }
+      contents
     };
     if (remaining > 0) {
       (callConfig as any).tools = [{ functionDeclarations: toolDeclarations }];

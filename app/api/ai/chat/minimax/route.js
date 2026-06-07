@@ -41,6 +41,10 @@ import {
     buildCurrentUserMessage,
 } from '@/app/api/ai/minimax/minimaxHelpers';
 import {
+    buildMinimaxAnthropicProviderState,
+    buildMinimaxAnthropicRequest,
+} from '@/lib/ai/shared/minimaxAnthropicState';
+import {
     CHAT_RATE_LIMIT,
     MAX_REQUEST_BYTES,
     SSE_PADDING,
@@ -322,14 +326,18 @@ export async function POST(req) {
                     const systemPrompt = await buildDirectChatSystemPrompt({
                         userSystemPrompt, systemPromptSuffix, enableWebSearch, searchContextSection: '',
                     });
+                    const minimaxRequestPrompt = buildMinimaxAnthropicRequest({
+                        systemText: systemPrompt,
+                        messages: minimaxMessages,
+                    });
 
                     const requestBody = {
                         model: apiModel,
-                        ...(isNonEmptyString(systemPrompt) ? { system: systemPrompt } : {}),
-                        messages: minimaxMessages,
+                        ...minimaxRequestPrompt,
                         max_tokens: maxTokens,
                         thinking: buildMinimaxThinking(),
                         temperature: 1,
+                        metadata: { user_id: String(user.userId) },
                     };
 
                     const pushCitations = (items) => {
@@ -341,6 +349,7 @@ export async function POST(req) {
                     };
 
                     const stream = minimaxClient.messages.stream(requestBody, { signal: req?.signal });
+                    let finalMinimaxMessage = null;
                     for await (const parsed of stream) {
                         if (clientAborted) break;
 
@@ -381,7 +390,7 @@ export async function POST(req) {
                     }
 
                     if (!clientAborted) {
-                        await stream.finalMessage();
+                        finalMinimaxMessage = await stream.finalMessage();
                     }
 
                     if (clientAborted) {
@@ -399,6 +408,10 @@ export async function POST(req) {
                     controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 
                     if (user && currentConversationId) {
+                        const providerState = buildMinimaxAnthropicProviderState(
+                            finalMinimaxMessage?.content,
+                            finalMinimaxMessage?.usage
+                        );
                         const modelMessage = {
                             id: resolvedModelMessageId,
                             role: 'model',
@@ -407,6 +420,7 @@ export async function POST(req) {
                             citations: citations.length > 0 ? citations : null,
                             type: 'text',
                             parts: [{ text: fullText }],
+                            ...(providerState ? { providerState } : {}),
                         };
                         const persistedConversation = await Conversation.findOneAndUpdate(
                             buildConversationWriteCondition(currentConversationId, user.userId, writePermitTime),
