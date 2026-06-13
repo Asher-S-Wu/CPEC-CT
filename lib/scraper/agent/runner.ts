@@ -5,7 +5,7 @@ import {
   pickBestUrl
 } from "@/lib/scraper/source-runners/helpers";
 import { getScraperModelEnv } from "@/lib/scraper/env";
-import { appendFunctionResults, callBailianAgent, extractBailianFunctionCalls, extractBailianText, extractModelContent } from "@/lib/scraper/agent/bailian";
+import { appendFunctionResults, callZenMuxAgent, extractZenMuxFunctionCalls, extractZenMuxText, extractModelContent } from "@/lib/scraper/agent/zenmux";
 import { getScraperSkillKeyByToolName, getScraperSkillPromptLines, getScraperToolDeclarations } from "@/lib/scraper/skills/registry";
 import { runCrawl, runMap, runScrape, runSearch } from "@/lib/scraper/source-runners/xcrawl";
 import { formatScraperSkillKey, SCRAPER_OUTPUT_FORMATS, SCRAPER_SKILL_KEYS, type ScraperRunDoc, type ScraperSkillKey, type ScraperSourceDoc } from "@/lib/scraper/types";
@@ -360,16 +360,16 @@ export async function runAgentSource(source: ScraperSourceDoc, run: ScraperRunDo
       (callConfig as any).tools = [{ functionDeclarations: toolDeclarations }];
     }
 
-    const response = await callBailianAgent(callConfig as any);
+    const response = await callZenMuxAgent(callConfig as any);
 
     artifacts.push({
       artifactType: "model_response",
       payload: response
     });
 
-    const functionCalls = remaining > 0 ? extractBailianFunctionCalls(response) : [];
+    const functionCalls = remaining > 0 ? extractZenMuxFunctionCalls(response) : [];
     if (functionCalls.length === 0) {
-      finalText = extractBailianText(response) || "采集任务已完成。";
+      finalText = extractZenMuxText(response) || "采集任务已完成。";
       emit({ type: "model_text", text: finalText });
       break;
     }

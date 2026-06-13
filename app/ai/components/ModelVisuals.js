@@ -1,10 +1,11 @@
 import { getModelProvider } from "@/lib/ai/shared/models";
 
-// 各 provider 的品牌色与字标（内置 SVG，无需外部资源）
-const PROVIDER_STYLE = {
-  bailian: { label: "千", bg: "linear-gradient(135deg,#1677ff,#00a3ff)", color: "#ffffff" },
-  "bailian-image": { label: "图", bg: "linear-gradient(135deg,#00a870,#1677ff)", color: "#ffffff" },
-};
+const PROVIDER_ICON_URLS = Object.freeze({
+  anthropic: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/dzvOyI0/Property-1Claude.svg",
+  google: "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/13/QgpuHH0/Property-1Gemini.svg",
+  openai: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/Mm7IePA/Property-1GPT.svg",
+  deepseek: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/tmeJLqx/Property-1deepseek.svg",
+});
 
 const FALLBACK_STYLE = { label: "AI", bg: "linear-gradient(135deg,#1677ff,#003eb3)", color: "#ffffff" };
 
@@ -13,8 +14,34 @@ function resolveProvider(model, provider) {
   return getModelProvider(model);
 }
 
-function Glyph({ provider, size, rounded }) {
-  const style = PROVIDER_STYLE[provider] || FALLBACK_STYLE;
+function ProviderIcon({ provider, size, rounded }) {
+  const iconUrl = PROVIDER_ICON_URLS[provider];
+
+  if (iconUrl) {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: rounded ? Math.round(size * 0.22) : Math.round(size * 0.3),
+        }}
+        className="inline-flex shrink-0 items-center justify-center overflow-hidden bg-[var(--oa-card-bg)]"
+      >
+        <img
+          src={iconUrl}
+          alt=""
+          width={size}
+          height={size}
+          className="h-full w-full object-contain"
+          loading="lazy"
+          decoding="async"
+        />
+      </span>
+    );
+  }
+
+  const style = FALLBACK_STYLE;
   return (
     <span
       aria-hidden="true"
@@ -36,9 +63,9 @@ function Glyph({ provider, size, rounded }) {
 }
 
 export function ModelGlyph({ model, provider, size = 16 }) {
-  return <Glyph provider={resolveProvider(model, provider)} size={size} rounded={false} />;
+  return <ProviderIcon provider={resolveProvider(model, provider)} size={size} rounded={false} />;
 }
 
 export function ModelAvatar({ model, size = 24 }) {
-  return <Glyph provider={resolveProvider(model)} size={size} rounded />;
+  return <ProviderIcon provider={resolveProvider(model)} size={size} rounded />;
 }

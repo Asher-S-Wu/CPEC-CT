@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import {
-  buildQwenResponsesRequest,
-  createBailianOpenAIClient,
+  buildResponsesRequest,
+  createZenMuxOpenAIClient,
   getResponsesOutputItems,
   getResponsesOutputText,
   normalizeOpenAIError,
-} from "@/lib/ai/server/bailian/openai";
+} from "@/lib/ai/server/zenmux/openai";
 
 type AgentPart = {
   text?: string;
@@ -129,7 +129,7 @@ function agentToolsToOpenAITools(
   }));
 }
 
-export async function callBailianAgent(input: {
+export async function callZenMuxAgent(input: {
   apiKey: string;
   model: string;
   contents: AgentContent[];
@@ -137,11 +137,11 @@ export async function callBailianAgent(input: {
 }) {
   const responseInput = agentContentsToResponsesInput(input.contents);
   const tools = agentToolsToOpenAITools(input.tools);
-  const client = createBailianOpenAIClient();
+  const client = createZenMuxOpenAIClient();
 
   try {
     return (await client.responses.create(
-      buildQwenResponsesRequest({
+      buildResponsesRequest({
         model: input.model,
         input: responseInput,
         stream: false,
@@ -158,11 +158,11 @@ export async function callBailianAgent(input: {
   }
 }
 
-export function extractBailianText(response: any) {
+export function extractZenMuxText(response: any) {
   return getResponsesOutputText(response);
 }
 
-export function extractBailianFunctionCalls(response: any) {
+export function extractZenMuxFunctionCalls(response: any) {
   return getResponsesOutputItems(response)
     .filter((item: any) => item?.type === "function_call" && typeof item.name === "string")
     .map((item: any) => {
@@ -189,7 +189,7 @@ export function extractModelContent(response: any): AgentContent {
     parts.push({ text });
   }
 
-  const calls = extractBailianFunctionCalls(response);
+  const calls = extractZenMuxFunctionCalls(response);
   for (const call of calls) {
     parts.push({ functionCall: call });
   }

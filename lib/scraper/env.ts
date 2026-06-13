@@ -14,7 +14,7 @@ export function getScraperXcrawlEnv() {
 
 export function getScraperModelEnv() {
   return {
-    apiKey: readRequiredEnv("DASHSCOPE_API_KEY"),
-    model: "qwen3.7-plus"
+    apiKey: readRequiredEnv("ZENMUX_API_KEY"),
+    model: "google/gemini-3.5-flash"
   };
 }

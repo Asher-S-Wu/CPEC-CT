@@ -4,7 +4,7 @@ import { getAuthPayload } from "@/lib/ai/auth";
 import { rateLimit, getClientIP } from "@/lib/ai/rateLimit";
 import {
   getModelConfig,
-  isBailianChatModel,
+  isZenMuxChatModel,
 } from "@/lib/ai/shared/models";
 import {
   isNonEmptyString,
@@ -26,21 +26,18 @@ import { prepareDocumentAttachmentMapByUrls } from "@/lib/ai/server/files/servic
 import { buildDirectChatSystemPrompt } from "@/lib/ai/server/chat/systemPromptBuilder";
 import {
   parseSystemPrompt,
-  parseWebSearchConfig,
-  parseWebSearchEnabled,
 } from "@/lib/ai/server/chat/requestConfig";
-import { WEB_BROWSING_IDENTIFIER, WebBrowsingApiName } from "@/lib/ai/shared/webBrowsing";
 import {
-  buildQwenResponsesRequest,
-  createBailianOpenAIClient,
+  buildResponsesRequest,
+  createZenMuxOpenAIClient,
   getResponsesCompletedUsage,
   normalizeOpenAIError,
-} from "@/lib/ai/server/bailian/openai";
+} from "@/lib/ai/server/zenmux/openai";
 import {
-  buildBailianMessagesFromHistory,
+  buildChatMessagesFromHistory,
   buildCurrentUserMessage,
   normalizeOpenAIMessageContentParts,
-} from "@/app/api/ai/bailian/bailianHelpers";
+} from "@/app/api/ai/chat/chatHelpers";
 import {
   CHAT_RATE_LIMIT,
   MAX_REQUEST_BYTES,
@@ -52,28 +49,23 @@ import { logError } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function buildBailianResponsesProviderState({ responseId, previousResponseId, usage, tools }) {
+function buildZenMuxResponsesProviderState({ responseId, previousResponseId, usage }) {
   const state = {};
   if (typeof responseId === "string" && responseId.trim()) state.responseId = responseId.trim();
   if (typeof previousResponseId === "string" && previousResponseId.trim()) state.previousResponseId = previousResponseId.trim();
   if (usage && typeof usage === "object" && !Array.isArray(usage)) state.usage = usage;
-  if (tools && typeof tools === "object" && !Array.isArray(tools)) state.tools = tools;
-  return Object.keys(state).length > 0 ? { bailianResponses: state } : undefined;
+  return Object.keys(state).length > 0 ? { zenmuxResponses: state } : undefined;
 }
 
-function getStoredBailianResponseId(messages) {
+function getStoredZenMuxResponseId(messages) {
   if (!Array.isArray(messages)) return "";
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
     if (message?.role !== "model") continue;
-    const responseId = message?.providerState?.bailianResponses?.responseId;
+    const responseId = message?.providerState?.zenmuxResponses?.responseId;
     if (typeof responseId === "string" && responseId.trim()) return responseId.trim();
   }
   return "";
-}
-
-function uniqueCitationsFromMap(citationMap) {
-  return Array.from(citationMap.values()).filter((item) => item?.url);
 }
 
 export async function POST(req) {
@@ -103,7 +95,7 @@ export async function POST(req) {
     if (!Array.isArray(history)) {
       return Response.json({ error: "history must be an array" }, { status: 400 });
     }
-    if (!isBailianChatModel(model)) {
+    if (!isZenMuxChatModel(model)) {
       return Response.json({ error: "unsupported model" }, { status: 400 });
     }
 
@@ -132,7 +124,7 @@ export async function POST(req) {
       }
       user = auth;
     } catch (dbError) {
-      logError("ai.bailian", "connect database", dbError);
+      logError("ai.zenmux", "connect database", dbError);
       return Response.json({ error: "Database connection failed" }, { status: 500 });
     }
 
@@ -146,7 +138,7 @@ export async function POST(req) {
     let previousMessages = Array.isArray(currentConversation?.messages) ? currentConversation.messages : [];
     let previousUpdatedAt = currentConversation?.updatedAt ? new Date(currentConversation.updatedAt) : new Date();
 
-    const bailianClient = createBailianOpenAIClient();
+    const zenMuxClient = createZenMuxOpenAIClient();
     const apiModel = model;
 
     const currentAttachments = Array.isArray(config?.attachments)
@@ -162,7 +154,7 @@ export async function POST(req) {
     const resolvedUserMessageId = (typeof userMessageId === "string" && userMessageId.trim()) ? userMessageId.trim() : generateMessageId();
     const resolvedModelMessageId = (typeof modelMessageId === "string" && modelMessageId.trim()) ? modelMessageId.trim() : generateMessageId();
 
-    let qwenMessages = [];
+    let chatMessages = [];
     let storedMessagesForRegenerate = null;
     let previousResponseId = "";
 
@@ -196,7 +188,7 @@ export async function POST(req) {
       const msgs = storedMessagesForRegenerate;
       const historyBeforeCurrentPrompt = Array.isArray(msgs) && msgs[msgs.length - 1]?.role === "user" ? msgs.slice(0, -1) : msgs;
       const currentTurn = Array.isArray(msgs) && msgs[msgs.length - 1]?.role === "user" ? [msgs[msgs.length - 1]] : [];
-      previousResponseId = getStoredBailianResponseId(historyBeforeCurrentPrompt);
+      previousResponseId = getStoredZenMuxResponseId(historyBeforeCurrentPrompt);
       const effectiveHistory = previousResponseId
         ? []
         : ((limit > 0) ? historyBeforeCurrentPrompt.slice(-limit) : historyBeforeCurrentPrompt);
@@ -204,23 +196,20 @@ export async function POST(req) {
       const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(inputMessages), {
         userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
       });
-      qwenMessages = await buildBailianMessagesFromHistory(inputMessages, { fileTextMap });
+      chatMessages = await buildChatMessagesFromHistory(inputMessages, { fileTextMap });
     } else {
-      previousResponseId = getStoredBailianResponseId(previousMessages);
+      previousResponseId = getStoredZenMuxResponseId(previousMessages);
       if (!previousResponseId) {
         const effectiveHistory = (limit > 0) ? history.slice(-limit) : history;
         const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(effectiveHistory), {
           userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
         });
-        qwenMessages = await buildBailianMessagesFromHistory(effectiveHistory, { fileTextMap });
+        chatMessages = await buildChatMessagesFromHistory(effectiveHistory, { fileTextMap });
       }
     }
 
     const userSystemPrompt = parseSystemPrompt(config?.systemPrompt);
     const systemPromptSuffix = parseSystemPrompt(config?.systemPromptSuffix);
-
-    const webSearchConfig = parseWebSearchConfig(config?.webSearch);
-    const enableWebSearch = parseWebSearchEnabled(config?.webSearch);
 
     if (user && !currentConversationId) {
       const titleSource = isNonEmptyString(prompt) ? prompt : (currentAttachments[0]?.name || (config?.images?.length ? "图片对话" : "New Chat"));
@@ -229,10 +218,7 @@ export async function POST(req) {
         userId: user.userId,
         title,
         model,
-        settings: {
-          ...(settings && typeof settings === "object" ? settings : {}),
-          webSearch: webSearchConfig,
-        },
+        settings: settings && typeof settings === "object" ? settings : {},
         messages: [],
       });
       currentConversationId = newConv._id.toString();
@@ -266,7 +252,7 @@ export async function POST(req) {
       if (currentContent.length === 0) {
         return Response.json({ error: "请至少输入内容或上传附件" }, { status: 400 });
       }
-      qwenMessages.push({
+      chatMessages.push({
         role: "user",
         content: normalizeOpenAIMessageContentParts(currentContent),
       });
@@ -316,119 +302,7 @@ export async function POST(req) {
         let fullThought = "";
         let finalUsage = null;
         let finalResponseId = "";
-        let finalToolUsage = null;
-        const toolRuns = new Map();
-        const citationMap = new Map();
-        const responseToolRounds = new Map();
-        let searchRound = 0;
-        let readerRound = 0;
         let finalMessagePersisted = false;
-
-        const addCitation = (url, title = "") => {
-          if (typeof url !== "string" || !url.trim()) return;
-          const cleanUrl = url.trim();
-          if (!citationMap.has(cleanUrl)) {
-            citationMap.set(cleanUrl, { url: cleanUrl, title: typeof title === "string" ? title : "" });
-          }
-        };
-
-        const patchToolRun = (id, patch) => {
-          if (typeof id !== "string" || !id.trim()) return;
-          const key = id.trim();
-          const current = toolRuns.get(key) || { id: key };
-          toolRuns.set(key, { ...current, ...patch });
-        };
-
-        const sourcesToResults = (sources) => {
-          if (!Array.isArray(sources)) return [];
-          return sources
-            .map((source) => {
-              const url = typeof source?.url === "string" ? source.url.trim() : "";
-              if (!url) return null;
-              const title = typeof source?.title === "string" && source.title.trim() ? source.title.trim() : url;
-              addCitation(url, title);
-              return { title, url };
-            })
-            .filter(Boolean);
-        };
-
-        const urlsToResults = (urls) => {
-          if (!Array.isArray(urls)) return [];
-          return urls
-            .map((url) => (typeof url === "string" ? url.trim() : ""))
-            .filter(Boolean)
-            .map((url) => {
-              addCitation(url, url);
-              return { title: url, url };
-            });
-        };
-
-        const handleOutputItemAdded = (item, sendEvent) => {
-          if (!item || typeof item !== "object") return;
-          if (item.type === "web_search_call") {
-            const round = searchRound + 1;
-            searchRound = round;
-            responseToolRounds.set(item.id, round);
-            const query = typeof item.action?.query === "string" ? item.action.query : "联网搜索";
-            patchToolRun(item.id, {
-              identifier: WEB_BROWSING_IDENTIFIER,
-              apiName: WebBrowsingApiName.search,
-              type: "builtin",
-              status: "running",
-              title: "联网搜索",
-              arguments: { query },
-              startedAt: new Date().toISOString(),
-            });
-            sendEvent({ type: "search_start", query, round });
-          } else if (item.type === "web_extractor_call") {
-            const round = readerRound + 1;
-            readerRound = round;
-            responseToolRounds.set(item.id, round);
-            const urls = Array.isArray(item.urls) ? item.urls.filter((url) => typeof url === "string" && url.trim()) : [];
-            const url = urls[0] || "";
-            patchToolRun(item.id, {
-              identifier: WEB_BROWSING_IDENTIFIER,
-              apiName: WebBrowsingApiName.crawlSinglePage,
-              type: "builtin",
-              status: "running",
-              title: "网页阅读",
-              arguments: { urls, goal: item.goal || "" },
-              startedAt: new Date().toISOString(),
-            });
-            sendEvent({ type: "page_fetch_start", url, round });
-          }
-        };
-
-        const handleOutputItemDone = (item, sendEvent) => {
-          if (!item || typeof item !== "object") return;
-          if (item.type === "web_search_call") {
-            const query = typeof item.action?.query === "string" ? item.action.query : "联网搜索";
-            const sources = Array.isArray(item.action?.sources) ? item.action.sources : [];
-            const results = sourcesToResults(sources);
-            const round = responseToolRounds.get(item.id) || searchRound || 1;
-            patchToolRun(item.id, {
-              status: "success",
-              summary: results.map((result) => result.url).join("\n"),
-              state: { results },
-              citations: results,
-              finishedAt: new Date().toISOString(),
-            });
-            sendEvent({ type: "search_result", query, results, round });
-          } else if (item.type === "web_extractor_call") {
-            const urls = Array.isArray(item.urls) ? item.urls.filter((url) => typeof url === "string" && url.trim()) : [];
-            const results = urlsToResults(urls);
-            const round = responseToolRounds.get(item.id) || readerRound || 1;
-            patchToolRun(item.id, {
-              status: "success",
-              summary: typeof item.output === "string" ? item.output : "",
-              content: typeof item.output === "string" ? item.output : "",
-              state: { results },
-              citations: results,
-              finishedAt: new Date().toISOString(),
-            });
-            sendEvent({ type: "page_fetch_result", url: urls[0] || "", results, round });
-          }
-        };
 
         const rollbackCurrentTurn = async () => {
           if (finalMessagePersisted) return;
@@ -458,21 +332,17 @@ export async function POST(req) {
           };
 
           const systemPrompt = await buildDirectChatSystemPrompt({
-            userSystemPrompt, systemPromptSuffix, enableWebSearch, searchContextSection: "",
+            userSystemPrompt, systemPromptSuffix, enableWebSearch: false, searchContextSection: "",
           });
-          const tools = enableWebSearch
-            ? [{ type: "web_search" }, { type: "web_extractor" }]
-            : undefined;
 
-          const stream = await bailianClient.responses.create(
-            buildQwenResponsesRequest({
+          const stream = await zenMuxClient.responses.create(
+            buildResponsesRequest({
               model: apiModel,
-              input: qwenMessages,
+              input: chatMessages,
               instructions: systemPrompt,
               previousResponseId,
               stream: true,
               reasoningEffort: "high",
-              tools,
             }),
             { signal: req?.signal }
           );
@@ -498,22 +368,9 @@ export async function POST(req) {
               continue;
             }
 
-            if (chunk?.type === "response.output_item.added") {
-              handleOutputItemAdded(chunk.item, sendEvent);
-              continue;
-            }
-
-            if (chunk?.type === "response.output_item.done") {
-              handleOutputItemDone(chunk.item, sendEvent);
-              continue;
-            }
-
             if (chunk?.type === "response.completed") {
               finalUsage = getResponsesCompletedUsage(chunk);
               finalResponseId = typeof chunk.response?.id === "string" ? chunk.response.id : "";
-              finalToolUsage = chunk.response?.usage?.x_tools && typeof chunk.response.usage.x_tools === "object"
-                ? chunk.response.usage.x_tools
-                : null;
             }
           }
 
@@ -526,30 +383,22 @@ export async function POST(req) {
           fullText = fullText.trim();
           fullThought = fullThought.trim();
 
-          const citations = uniqueCitationsFromMap(citationMap);
-          if (citations.length > 0) {
-            sendEvent({ type: "citations", citations });
-          }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
           if (user && currentConversationId) {
-            const providerState = buildBailianResponsesProviderState({
+            const providerState = buildZenMuxResponsesProviderState({
               responseId: finalResponseId,
               previousResponseId,
               usage: finalUsage,
-              tools: finalToolUsage,
             });
-            const persistedTools = Array.from(toolRuns.values()).filter((tool) => tool?.id && tool?.identifier && tool?.apiName);
             const modelMessage = {
               id: resolvedModelMessageId,
               role: "model",
               content: fullText,
               thought: fullThought,
-              citations: citations.length > 0 ? citations : null,
               type: "text",
               parts: [{ text: fullText }],
               ...(providerState ? { providerState } : {}),
-              ...(persistedTools.length > 0 ? { tools: persistedTools } : {}),
             };
             const persistedConversation = await Conversation.findOneAndUpdate(
               buildConversationWriteCondition(currentConversationId, user.userId, writePermitTime),
@@ -602,14 +451,14 @@ export async function POST(req) {
     return new Response(responseStream, { headers });
 
   } catch (error) {
-    logError("ai.bailian", "handle chat request", error, { status: error?.status, code: error?.code });
+    logError("ai.zenmux", "handle chat request", error, { status: error?.status, code: error?.code });
     const rawStatus = typeof error?.status === "number" ? error.status : 500;
     const isUpstreamAuthError = rawStatus === 401;
     const status = isUpstreamAuthError ? 500 : rawStatus;
     let errorMessage = error?.message;
     if (isUpstreamAuthError) {
-      errorMessage = "模型服务认证失败，请检查百炼接口配置";
-    } else if (error?.message?.includes("API_KEY") || error?.message?.includes("DASHSCOPE")) {
+      errorMessage = "模型服务认证失败，请检查 ZenMux 接口配置";
+    } else if (error?.message?.includes("API_KEY") || error?.message?.includes("ZENMUX")) {
       errorMessage = "API configuration error. Please check your API keys.";
     }
     return Response.json({ error: errorMessage }, { status });

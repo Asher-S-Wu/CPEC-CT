@@ -14,7 +14,6 @@ import ModelSelector from "./ModelSelector";
 import SettingsMenu from "./SettingsMenu";
 import {
   getModelAttachmentSupport,
-  isImageGenModel,
 } from "@/lib/ai/shared/models";
 import {
   getAttachmentInputType,
@@ -84,7 +83,6 @@ export default function Composer({
     supportsVideo,
     supportsAudio,
   });
-  const isImageModel = isImageGenModel(model);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -381,20 +379,14 @@ export default function Composer({
             onModelChange={onModelChange}
             ready={modelReady}
           />
-          {!isImageModel && (
-            <SettingsMenu
-              model={model}
-              ready={modelReady}
-              webSearch={webSearch}
-              setWebSearch={setWebSearch}
-              chatSystemPrompt={chatSystemPrompt}
-              onChatSystemPromptSave={onChatSystemPromptSave}
-              systemPrompts={systemPrompts}
-              addSystemPrompt={addSystemPrompt}
-              updateSystemPrompt={updateSystemPrompt}
-              deleteSystemPrompt={deleteSystemPrompt}
-            />
-          )}
+          <SettingsMenu
+            chatSystemPrompt={chatSystemPrompt}
+            onChatSystemPromptSave={onChatSystemPromptSave}
+            systemPrompts={systemPrompts}
+            addSystemPrompt={addSystemPrompt}
+            updateSystemPrompt={updateSystemPrompt}
+            deleteSystemPrompt={deleteSystemPrompt}
+          />
         </div>
 
         <div className="px-4 py-3 md:px-5 md:py-4">
@@ -450,7 +442,7 @@ export default function Composer({
                     onPaste={handlePaste}
                     onFocus={() => setIsMainInputFocused(true)}
                     onBlur={() => setIsMainInputFocused(false)}
-                    placeholder={isImageModel ? "描述你想生成的图片" : "输入内容"}
+                    placeholder="输入内容"
                     className="block min-h-6 w-full resize-none border-none bg-transparent py-0 text-[15px] leading-6 text-[var(--text-primary)] outline-none focus:ring-0 scrollbar-none"
                     rows={1}
                   />

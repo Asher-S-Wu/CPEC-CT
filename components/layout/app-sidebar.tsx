@@ -14,6 +14,7 @@ import {
   Database,
   Settings,
   Sparkles,
+  Clapperboard,
   X,
   ChevronUp,
   ChevronLeft,
@@ -36,7 +37,8 @@ const navItems: SidebarNavSection[] = [
     icon: <LayoutDashboard className="h-3.5 w-3.5" />,
     items: [
       { href: "/", label: "总览看板", icon: <LayoutDashboard className="w-5 h-5" /> },
-      { href: "/ai", label: "人工智能", icon: <Sparkles className="w-5 h-5" /> },
+      { href: "/ai", label: "文本工具", icon: <Sparkles className="w-5 h-5" /> },
+      { href: "/media", label: "媒体工具", icon: <Clapperboard className="w-5 h-5" /> },
       { href: "/audio", label: "音频工具", icon: <AudioLines className="w-5 h-5" /> },
       { href: "/scraper", label: "数据采集", icon: <Database className="w-5 h-5" /> },
     ],

@@ -3,15 +3,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, Settings2, MessageSquareQuote, X } from "lucide-react";
-import { getModelConfig } from "@/lib/ai/shared/models";
-import { DEFAULT_WEB_SEARCH_SETTINGS } from "@/lib/ai/shared/webSearch";
+import { Settings2, MessageSquareQuote, X } from "lucide-react";
 import SystemPromptModal from "./SystemPromptModal";
 
 export default function SettingsMenu({
-  model,
-  webSearch,
-  setWebSearch,
   chatSystemPrompt,
   onChatSystemPromptSave,
   systemPrompts,
@@ -22,18 +17,6 @@ export default function SettingsMenu({
   const [showSettings, setShowSettings] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const mounted = typeof window !== "undefined";
-  const modelConfig = getModelConfig(model);
-  const supportsWebSearch = modelConfig?.supportsWebSearch === true;
-  const webSearchSettings = webSearch && typeof webSearch === "object"
-    ? { ...DEFAULT_WEB_SEARCH_SETTINGS, ...webSearch }
-    : DEFAULT_WEB_SEARCH_SETTINGS;
-
-  const updateWebSearch = (patch) => {
-    setWebSearch((prev) => ({
-      ...(prev && typeof prev === "object" ? prev : DEFAULT_WEB_SEARCH_SETTINGS),
-      ...patch,
-    }));
-  };
 
   return (
     <div className="relative">
@@ -82,24 +65,6 @@ export default function SettingsMenu({
                 </div>
 
                 <div className="p-4 space-y-4">
-                  {/* 智能联网 */}
-                  {supportsWebSearch ? (
-                    <div className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-3">
-                      <span className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                        <Search size={15} className="text-[var(--ai-accent-strong)]" />
-                        智能联网
-                      </span>
-                      <button
-                        onClick={() => updateWebSearch({ enabled: !webSearchSettings.enabled })}
-                        type="button"
-                        className={`relative h-[22px] w-10 rounded-full transition-colors ${webSearchSettings.enabled ? "bg-[var(--oa-blue)]" : "bg-[var(--oa-border)]"}`}
-                      >
-                        <span className={`absolute left-0.5 top-0.5 h-[18px] w-[18px] rounded-full bg-[var(--oa-elevated)] transition-transform ${webSearchSettings.enabled ? "translate-x-[18px]" : ""}`} />
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {/* 系统提示词 */}
                   <div>
                     <label className="mb-2 block px-1 text-xs font-medium text-[var(--text-muted)]">
                       系统提示词

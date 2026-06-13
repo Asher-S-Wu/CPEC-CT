@@ -50,7 +50,7 @@ function normalizeOpenAIMessageContent(contentParts) {
   return contentParts;
 }
 
-export async function buildBailianMessagesFromHistory(messages, options = {}) {
+export async function buildChatMessagesFromHistory(messages, options = {}) {
   const result = [];
   for (const msg of messages) {
     if (msg?.role !== "user" && msg?.role !== "model") continue;
