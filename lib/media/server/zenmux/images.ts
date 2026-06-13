@@ -2,13 +2,6 @@ import OpenAI from "openai";
 import { resolveZenMuxProviderConfig } from "@/lib/ai/modelRoutes";
 import { IMAGE_MODEL } from "@/lib/media/shared/models";
 import { saveImageBuffer, saveMediaFromUrl } from "@/lib/media/storage";
-
-const OUTPUT_FORMAT_TO_MIME: Record<string, string> = {
-  png: "image/png",
-  jpeg: "image/jpeg",
-  webp: "image/webp",
-};
-
 function createZenMuxOpenAIClient() {
   const { openAIBaseUrl, apiKey } = resolveZenMuxProviderConfig();
   return new OpenAI({
@@ -42,9 +35,7 @@ export async function generateAndStoreImage({
   const remoteUrl = item?.url;
 
   if (typeof b64 === "string" && b64) {
-    const outputFormat = typeof item?.output_format === "string" ? item.output_format : "png";
-    const mimeType = OUTPUT_FORMAT_TO_MIME[outputFormat] || "image/png";
-    const saved = await saveImageBuffer(Buffer.from(b64, "base64"), mimeType);
+    const saved = await saveImageBuffer(Buffer.from(b64, "base64"), "image/png");
     return saved.url;
   }
 
