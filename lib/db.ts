@@ -43,7 +43,7 @@ const INVALID_EMAIL_FILTER = {
     { email: { $exists: false } },
     { email: null },
     { email: "" },
-    { email: { $not: { $type: "string" } } },
+    { email: { $not: { $type: "string" as const } } },
   ],
 };
 
@@ -52,7 +52,7 @@ const INVALID_TOKEN_HASH_FILTER = {
     { tokenHash: { $exists: false } },
     { tokenHash: null },
     { tokenHash: "" },
-    { tokenHash: { $not: { $type: "string" } } },
+    { tokenHash: { $not: { $type: "string" as const } } },
   ],
 };
 
@@ -61,7 +61,7 @@ const INVALID_URL_FILTER = {
     { url: { $exists: false } },
     { url: null },
     { url: "" },
-    { url: { $not: { $type: "string" } } },
+    { url: { $not: { $type: "string" as const } } },
   ],
 };
 
