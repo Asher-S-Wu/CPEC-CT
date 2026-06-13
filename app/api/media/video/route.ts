@@ -5,12 +5,15 @@ import {
   VIDEO_ASPECT_RATIO_OPTIONS,
   VIDEO_DURATION_OPTIONS,
   VIDEO_RESOLUTION_OPTIONS,
+  type VideoAspectRatio,
+  type VideoDuration,
+  type VideoResolution,
 } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
-const ALLOWED_ASPECT_RATIOS = new Set(VIDEO_ASPECT_RATIO_OPTIONS.map((item) => item.id));
-const ALLOWED_DURATIONS = new Set(VIDEO_DURATION_OPTIONS.map((item) => item.id));
-const ALLOWED_RESOLUTIONS = new Set(VIDEO_RESOLUTION_OPTIONS.map((item) => item.id));
+const ALLOWED_ASPECT_RATIOS = new Set<string>(VIDEO_ASPECT_RATIO_OPTIONS.map((item) => item.id));
+const ALLOWED_DURATIONS = new Set<number>(VIDEO_DURATION_OPTIONS.map((item) => item.id));
+const ALLOWED_RESOLUTIONS = new Set<string>(VIDEO_RESOLUTION_OPTIONS.map((item) => item.id));
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,9 +50,9 @@ export async function POST(request: NextRequest) {
 
     const videoUrl = await generateAndStoreVideo({
       prompt,
-      aspectRatio,
-      durationSeconds,
-      resolution,
+      aspectRatio: aspectRatio as VideoAspectRatio,
+      durationSeconds: durationSeconds as VideoDuration,
+      resolution: resolution as VideoResolution,
       signal: request.signal,
     });
 

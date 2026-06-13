@@ -4,7 +4,7 @@ import { generateAndStoreImage } from "@/lib/media/server/zenmux/images";
 import { IMAGE_SIZE_OPTIONS } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
-const ALLOWED_SIZES = new Set(IMAGE_SIZE_OPTIONS.map((item) => item.id));
+const ALLOWED_SIZES = new Set<string>(IMAGE_SIZE_OPTIONS.map((item) => item.id));
 
 export async function POST(request: NextRequest) {
   try {
