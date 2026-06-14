@@ -210,7 +210,7 @@ export default function VideoGenerationPage() {
             >
               <X className="h-4 w-4" />
             </button>
-          )}
+          ) : null}
           <input
             key={inputKey}
             id={`video-${kind}`}
