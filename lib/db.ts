@@ -1,4 +1,4 @@
-import { MongoClient, ServerApiVersion, type Collection, type Db } from "mongodb";
+import { MongoClient, ServerApiVersion, type Collection, type Db, type Document } from "mongodb";
 import { getEnv } from "@/lib/env";
 import { logError } from "@/lib/logger";
 import type { SessionDoc, SystemStateDoc, UserDoc } from "@/types/domain";
@@ -65,7 +65,7 @@ const INVALID_URL_FILTER = {
   ],
 };
 
-async function dropIndexIfExists(collection: Collection, indexName: string) {
+async function dropIndexIfExists<TSchema extends Document>(collection: Collection<TSchema>, indexName: string) {
   try {
     await collection.dropIndex(indexName);
   } catch {
