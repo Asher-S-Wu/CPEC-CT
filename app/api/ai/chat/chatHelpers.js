@@ -11,7 +11,7 @@ async function storedPartToOpenAIContentPart(part, role, options = {}) {
   const isAssistant = role === "assistant";
 
   if (isNonEmptyString(part.text)) {
-    return { type: isAssistant ? "output_text" : "input_text", text: part.text };
+    return { type: "text", text: part.text };
   }
 
   if (isAssistant) {
@@ -21,8 +21,8 @@ async function storedPartToOpenAIContentPart(part, role, options = {}) {
   const imageUrl = part?.inlineData?.url;
   if (isNonEmptyString(imageUrl)) {
     return {
-      type: "input_image",
-      image_url: imageUrl,
+      type: "image_url",
+      image_url: { url: imageUrl },
     };
   }
 
@@ -35,7 +35,7 @@ async function storedPartToOpenAIContentPart(part, role, options = {}) {
       const extractedText = prepared?.structuredText || prepared?.extractedText || "";
       if (isNonEmptyString(extractedText)) {
         return {
-          type: "input_text",
+          type: "text",
           text: buildAttachmentTextBlock(prepared.file || part.fileData, extractedText),
         };
       }
@@ -60,7 +60,7 @@ export async function buildChatMessagesFromHistory(messages, options = {}) {
     if (role === "assistant" && isNonEmptyString(msg?.content)) {
       result.push({
         role,
-        content: [{ type: "output_text", text: msg.content }],
+        content: msg.content,
       });
       continue;
     }
@@ -83,15 +83,15 @@ export async function buildChatMessagesFromHistory(messages, options = {}) {
 export async function buildCurrentUserMessage({ prompt, images, attachments, fileTextMap }) {
   const content = [];
   if (isNonEmptyString(prompt)) {
-    content.push({ type: "input_text", text: prompt });
+    content.push({ type: "text", text: prompt });
   }
 
   if (Array.isArray(images)) {
     for (const img of images) {
       if (!img?.url) continue;
       content.push({
-        type: "input_image",
-        image_url: img.url,
+        type: "image_url",
+        image_url: { url: img.url },
       });
     }
   }
@@ -103,7 +103,7 @@ export async function buildCurrentUserMessage({ prompt, images, attachments, fil
       const extractedText = prepared?.structuredText || prepared?.extractedText || "";
       if (!isNonEmptyString(extractedText)) continue;
       content.push({
-        type: "input_text",
+        type: "text",
         text: buildAttachmentTextBlock(prepared.file || attachment, extractedText),
       });
     }

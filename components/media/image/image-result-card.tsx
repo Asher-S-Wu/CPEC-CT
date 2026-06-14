@@ -5,9 +5,10 @@ import { ImageIcon } from 'lucide-react';
 
 interface ImageResultCardProps {
   imageUrl: string;
+  title?: string;
 }
 
-export function ImageResultCard({ imageUrl }: ImageResultCardProps) {
+export function ImageResultCard({ imageUrl, title = '生成的图片' }: ImageResultCardProps) {
   if (!imageUrl) return null;
 
   return (
@@ -15,14 +16,14 @@ export function ImageResultCard({ imageUrl }: ImageResultCardProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ImageIcon className="h-5 w-5" />
-          生成的图片
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
           <img
             src={imageUrl}
-            alt="生成的图片"
+            alt={title}
             className="mx-auto max-h-[640px] w-full object-contain"
           />
         </div>

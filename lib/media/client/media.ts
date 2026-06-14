@@ -2,6 +2,7 @@ import type {
   ImageSize,
   VideoAspectRatio,
   VideoDuration,
+  VideoPersonGeneration,
   VideoResolution,
 } from "@/lib/media/shared/models";
 
@@ -28,16 +29,61 @@ export async function generateImage(input: {
   return String(data.imageUrl);
 }
 
+export async function editImage(input: {
+  prompt: string;
+  size: ImageSize;
+  image: File;
+}) {
+  const formData = new FormData();
+  formData.append("prompt", input.prompt);
+  formData.append("size", input.size);
+  formData.append("image", input.image);
+
+  const response = await fetch("/api/media/image/edit", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await readJson(response);
+  if (!response.ok) {
+    throw new Error(data.message || "图片编辑失败");
+  }
+  if (!data.imageUrl) {
+    throw new Error("图片编辑完成，但没有返回结果");
+  }
+  return String(data.imageUrl);
+}
+
 export async function generateVideo(input: {
   prompt: string;
   aspectRatio: VideoAspectRatio;
   durationSeconds: VideoDuration;
   resolution: VideoResolution;
+  image?: File | null;
+  lastFrame?: File | null;
+  negativePrompt?: string;
+  generateAudio?: boolean;
+  enhancePrompt?: boolean;
+  personGeneration?: VideoPersonGeneration;
+  seed?: string;
+  fps?: string;
 }) {
+  const formData = new FormData();
+  formData.append("prompt", input.prompt);
+  formData.append("aspectRatio", input.aspectRatio);
+  formData.append("durationSeconds", String(input.durationSeconds));
+  formData.append("resolution", input.resolution);
+  formData.append("generateAudio", String(input.generateAudio !== false));
+  formData.append("enhancePrompt", String(input.enhancePrompt === true));
+  formData.append("personGeneration", input.personGeneration || "");
+  if (input.negativePrompt) formData.append("negativePrompt", input.negativePrompt);
+  if (input.seed) formData.append("seed", input.seed);
+  if (input.fps) formData.append("fps", input.fps);
+  if (input.image) formData.append("image", input.image);
+  if (input.lastFrame) formData.append("lastFrame", input.lastFrame);
+
   const response = await fetch("/api/media/video", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: formData,
   });
   const data = await readJson(response);
   if (!response.ok) {

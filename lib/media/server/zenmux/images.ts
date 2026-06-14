@@ -2,12 +2,31 @@ import OpenAI from "openai";
 import { resolveZenMuxProviderConfig } from "@/lib/ai/modelRoutes";
 import { IMAGE_MODEL } from "@/lib/media/shared/models";
 import { saveImageBuffer, saveMediaFromUrl } from "@/lib/media/storage";
+
 function createZenMuxOpenAIClient() {
   const { openAIBaseUrl, apiKey } = resolveZenMuxProviderConfig();
   return new OpenAI({
     apiKey,
     baseURL: openAIBaseUrl,
   });
+}
+
+async function saveImageResult(response: { data?: Array<{ b64_json?: string | null; url?: string | null }> }) {
+  const item = response.data?.[0];
+  const b64 = item?.b64_json;
+  const remoteUrl = item?.url;
+
+  if (typeof b64 === "string" && b64) {
+    const saved = await saveImageBuffer(Buffer.from(b64, "base64"), "image/png");
+    return saved.url;
+  }
+
+  if (typeof remoteUrl === "string" && remoteUrl) {
+    const saved = await saveMediaFromUrl(remoteUrl, "image/png", "media-image");
+    return saved.url;
+  }
+
+  throw new Error("图片处理失败，未返回有效结果");
 }
 
 export async function generateAndStoreImage({
@@ -30,19 +49,31 @@ export async function generateAndStoreImage({
     { signal }
   );
 
-  const item = response.data?.[0];
-  const b64 = item?.b64_json;
-  const remoteUrl = item?.url;
+  return saveImageResult(response);
+}
 
-  if (typeof b64 === "string" && b64) {
-    const saved = await saveImageBuffer(Buffer.from(b64, "base64"), "image/png");
-    return saved.url;
-  }
+export async function editAndStoreImage({
+  prompt,
+  image,
+  size = "1024x1024",
+  signal,
+}: {
+  prompt: string;
+  image: File;
+  size?: string;
+  signal?: AbortSignal;
+}) {
+  const client = createZenMuxOpenAIClient();
+  const response = await client.images.edit(
+    {
+      model: IMAGE_MODEL,
+      image,
+      prompt,
+      n: 1,
+      size,
+    },
+    { signal }
+  );
 
-  if (typeof remoteUrl === "string" && remoteUrl) {
-    const saved = await saveMediaFromUrl(remoteUrl, "image/png", "media-image");
-    return saved.url;
-  }
-
-  throw new Error("图片生成失败，未返回有效结果");
+  return saveImageResult(response);
 }

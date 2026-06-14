@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
-  buildResponsesRequest,
+  buildChatCompletionsRequest,
   createZenMuxOpenAIClient,
-  getResponsesOutputItems,
-  getResponsesOutputText,
+  getChatCompletionMessage,
+  getChatCompletionOutputText,
+  getChatCompletionToolCalls,
   normalizeOpenAIError,
 } from "@/lib/ai/server/zenmux/openai";
 
@@ -24,6 +25,8 @@ type AgentPart = {
 type AgentContent = {
   role: "user" | "model";
   parts: AgentPart[];
+  reasoning?: string;
+  reasoningDetails?: unknown;
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -50,8 +53,8 @@ function normalizeJsonSchema(value: unknown): unknown {
   return next;
 }
 
-function agentContentsToResponsesInput(contents: AgentContent[]) {
-  const input: Array<Record<string, unknown>> = [];
+function agentContentsToChatMessages(contents: AgentContent[]) {
+  const messages: Array<Record<string, unknown>> = [];
 
   for (const content of contents) {
     const parts = Array.isArray(content?.parts) ? content.parts : [];
@@ -61,20 +64,31 @@ function agentContentsToResponsesInput(contents: AgentContent[]) {
         .map((part) => (typeof part.text === "string" ? part.text : ""))
         .filter(Boolean)
         .join("\n");
+      const toolCalls = parts
+        .filter((part) => part.functionCall && typeof part.functionCall.name === "string")
+        .map((part) => ({
+          id: String(part.functionCall?.id || randomUUID()),
+          type: "function",
+          function: {
+            name: String(part.functionCall?.name),
+            arguments: JSON.stringify(isPlainObject(part.functionCall?.args) ? part.functionCall?.args : {}),
+          },
+        }));
       if (text) {
-        input.push({
+        messages.push({
           role: "assistant",
-          content: [{ type: "output_text", text }],
+          content: text,
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+          ...(typeof content.reasoning === "string" && content.reasoning ? { reasoning: content.reasoning } : {}),
+          ...(Array.isArray(content.reasoningDetails) ? { reasoning_details: content.reasoningDetails } : {}),
         });
-      }
-      for (const part of parts) {
-        if (!part.functionCall || typeof part.functionCall.name !== "string") continue;
-        input.push({
-          type: "function_call",
-          name: String(part.functionCall.name),
-          arguments: JSON.stringify(isPlainObject(part.functionCall.args) ? part.functionCall.args : {}),
-          call_id: String(part.functionCall.id || randomUUID()),
-          status: "completed",
+      } else if (toolCalls.length > 0) {
+        messages.push({
+          role: "assistant",
+          content: "",
+          tool_calls: toolCalls,
+          ...(typeof content.reasoning === "string" && content.reasoning ? { reasoning: content.reasoning } : {}),
+          ...(Array.isArray(content.reasoningDetails) ? { reasoning_details: content.reasoningDetails } : {}),
         });
       }
       continue;
@@ -84,11 +98,11 @@ function agentContentsToResponsesInput(contents: AgentContent[]) {
     if (functionResponses.length > 0) {
       for (const part of functionResponses) {
         const response = part.functionResponse;
-        input.push({
-          type: "function_call_output",
-          call_id: String(response?.id || ""),
-          output: JSON.stringify(response?.response ?? {}),
-          status: "completed",
+        messages.push({
+          role: "tool",
+          tool_call_id: String(response?.id || ""),
+          name: String(response?.name || ""),
+          content: JSON.stringify(response?.response ?? {}),
         });
       }
       const text = parts
@@ -96,7 +110,7 @@ function agentContentsToResponsesInput(contents: AgentContent[]) {
         .filter(Boolean)
         .join("\n");
       if (text) {
-        input.push({ role: "user", content: text });
+        messages.push({ role: "user", content: text });
       }
       continue;
     }
@@ -105,11 +119,11 @@ function agentContentsToResponsesInput(contents: AgentContent[]) {
       .filter((part) => typeof part.text === "string" && part.text.trim())
       .map((part) => part.text as string);
     if (textPieces.length > 0) {
-      input.push({ role: "user", content: textPieces.join("\n") });
+      messages.push({ role: "user", content: textPieces.join("\n") });
     }
   }
 
-  return input;
+  return messages;
 }
 
 function agentToolsToOpenAITools(
@@ -121,11 +135,13 @@ function agentToolsToOpenAITools(
 
   return declarations.map((decl) => ({
     type: "function",
-    name: String(decl.name),
-    description: typeof decl.description === "string" ? decl.description : "",
-    parameters: normalizeJsonSchema(
-      (decl.parameters as Record<string, unknown>) || { type: "object", properties: {} }
-    ),
+    function: {
+      name: String(decl.name),
+      description: typeof decl.description === "string" ? decl.description : "",
+      parameters: normalizeJsonSchema(
+        (decl.parameters as Record<string, unknown>) || { type: "object", properties: {} }
+      ),
+    },
   }));
 }
 
@@ -135,15 +151,15 @@ export async function callZenMuxAgent(input: {
   contents: AgentContent[];
   tools?: Array<{ functionDeclarations: Array<Record<string, unknown>> }>;
 }) {
-  const responseInput = agentContentsToResponsesInput(input.contents);
+  const messages = agentContentsToChatMessages(input.contents);
   const tools = agentToolsToOpenAITools(input.tools);
   const client = createZenMuxOpenAIClient();
 
   try {
-    return (await client.responses.create(
-      buildResponsesRequest({
+    return (await client.chat.completions.create(
+      buildChatCompletionsRequest({
         model: input.model,
-        input: responseInput,
+        messages,
         stream: false,
         tools,
         reasoningEffort: "high",
@@ -159,14 +175,14 @@ export async function callZenMuxAgent(input: {
 }
 
 export function extractZenMuxText(response: any) {
-  return getResponsesOutputText(response);
+  return getChatCompletionOutputText(response);
 }
 
 export function extractZenMuxFunctionCalls(response: any) {
-  return getResponsesOutputItems(response)
-    .filter((item: any) => item?.type === "function_call" && typeof item.name === "string")
+  return getChatCompletionToolCalls(response)
+    .filter((item: any) => item?.type === "function" && typeof item?.function?.name === "string")
     .map((item: any) => {
-      const rawArgs = typeof item.arguments === "string" ? item.arguments : "{}";
+      const rawArgs = typeof item?.function?.arguments === "string" ? item.function.arguments : "{}";
       let args: Record<string, unknown> = {};
       try {
         const parsed = JSON.parse(rawArgs);
@@ -175,8 +191,8 @@ export function extractZenMuxFunctionCalls(response: any) {
         args = {};
       }
       return {
-        id: String(item.call_id || item.id || randomUUID()),
-        name: String(item.name),
+        id: String(item.id || randomUUID()),
+        name: String(item.function.name),
         args,
       };
     });
@@ -184,7 +200,8 @@ export function extractZenMuxFunctionCalls(response: any) {
 
 export function extractModelContent(response: any): AgentContent {
   const parts: AgentPart[] = [];
-  const text = getResponsesOutputText(response);
+  const message = getChatCompletionMessage(response);
+  const text = getChatCompletionOutputText(response);
   if (text) {
     parts.push({ text });
   }
@@ -194,7 +211,12 @@ export function extractModelContent(response: any): AgentContent {
     parts.push({ functionCall: call });
   }
 
-  return { role: "model", parts };
+  return {
+    role: "model",
+    parts,
+    reasoning: typeof message?.reasoning === "string" ? message.reasoning : undefined,
+    reasoningDetails: Array.isArray(message?.reasoning_details) ? message.reasoning_details : undefined,
+  };
 }
 
 export function appendFunctionResults(input: {
@@ -207,17 +229,18 @@ export function appendFunctionResults(input: {
   }>;
 }) {
   const textParts = input.modelContent.parts.filter((part) => typeof part.text === "string" && part.text);
-  if (textParts.length > 0) {
-    input.contents.push({ role: "model", parts: textParts });
+  const calls = input.modelContent.parts.filter((part) => part.functionCall);
+  const modelParts = [...textParts, ...calls];
+  if (modelParts.length > 0) {
+    input.contents.push({
+      role: "model",
+      parts: modelParts,
+      reasoning: input.modelContent.reasoning,
+      reasoningDetails: input.modelContent.reasoningDetails,
+    });
   }
 
-  const calls = input.modelContent.parts.filter((part) => part.functionCall);
   for (const result of input.results) {
-    const callPart = calls.find((part) => part.functionCall?.id === result.id && part.functionCall?.name === result.name);
-    if (callPart) {
-      input.contents.push({ role: "model", parts: [callPart] });
-    }
-
     input.contents.push({
       role: "user",
       parts: [{

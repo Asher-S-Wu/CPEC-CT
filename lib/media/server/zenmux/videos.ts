@@ -4,6 +4,7 @@ import {
   parseModelSlug,
   type VideoAspectRatio,
   type VideoDuration,
+  type VideoPersonGeneration,
   type VideoResolution,
 } from "@/lib/media/shared/models";
 import { saveMediaFromUrl, saveVideoBuffer } from "@/lib/media/storage";
@@ -54,35 +55,106 @@ function extractVideoPayload(response: Record<string, unknown>) {
   return { gcsUri, bytesBase64Encoded, mimeType };
 }
 
+function normalizeOptionalText(value?: string) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text || undefined;
+}
+
+function normalizeOptionalNumber(value?: number) {
+  return Number.isFinite(value) ? value : undefined;
+}
+
+async function fileToVertexImage(file?: File) {
+  if (!file) return undefined;
+  const bytes = Buffer.from(await file.arrayBuffer()).toString("base64");
+  return {
+    bytesBase64Encoded: bytes,
+    mimeType: file.type || "image/png",
+  };
+}
+
 export async function generateAndStoreVideo({
   prompt,
+  image,
+  lastFrame,
   aspectRatio = "16:9",
   durationSeconds = 5,
   resolution = "720p",
+  generateAudio = true,
+  negativePrompt,
+  enhancePrompt,
+  personGeneration,
+  seed,
+  fps,
+  sampleCount = 1,
   signal,
 }: {
   prompt: string;
+  image?: File;
+  lastFrame?: File;
   aspectRatio?: VideoAspectRatio;
   durationSeconds?: VideoDuration;
   resolution?: VideoResolution;
+  generateAudio?: boolean;
+  negativePrompt?: string;
+  enhancePrompt?: boolean;
+  personGeneration?: VideoPersonGeneration;
+  seed?: number;
+  fps?: number;
+  sampleCount?: number;
   signal?: AbortSignal;
 }) {
   const { apiKey } = resolveZenMuxProviderConfig();
   const { provider, model } = parseModelSlug(VIDEO_MODEL);
   const submitUrl = `${ZENMUX_VERTEX_BASE_URL}/publishers/${provider}/models/${model}:predictLongRunning`;
   const pollUrl = `${ZENMUX_VERTEX_BASE_URL}/publishers/${provider}/models/${model}:fetchPredictOperation`;
+  const instance: Record<string, unknown> = {
+    prompt,
+  };
+  const vertexImage = await fileToVertexImage(image);
+  const vertexLastFrame = await fileToVertexImage(lastFrame);
+
+  if (vertexImage) {
+    instance.image = vertexImage;
+  }
+  if (vertexLastFrame) {
+    instance.lastFrame = vertexLastFrame;
+  }
+
+  const parameters: Record<string, unknown> = {
+    aspectRatio,
+    durationSeconds,
+    resolution,
+    generateAudio,
+    sampleCount,
+  };
+  const normalizedNegativePrompt = normalizeOptionalText(negativePrompt);
+  const normalizedPersonGeneration = normalizeOptionalText(personGeneration);
+  const normalizedSeed = normalizeOptionalNumber(seed);
+  const normalizedFps = normalizeOptionalNumber(fps);
+
+  if (normalizedNegativePrompt) {
+    parameters.negativePrompt = normalizedNegativePrompt;
+  }
+  if (typeof enhancePrompt === "boolean") {
+    parameters.enhancePrompt = enhancePrompt;
+  }
+  if (normalizedPersonGeneration) {
+    parameters.personGeneration = normalizedPersonGeneration;
+  }
+  if (normalizedSeed !== undefined) {
+    parameters.seed = normalizedSeed;
+  }
+  if (normalizedFps !== undefined) {
+    parameters.fps = normalizedFps;
+  }
 
   const submitResponse = await fetch(submitUrl, {
     method: "POST",
     headers: getAuthHeaders(apiKey),
     body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: {
-        aspectRatio,
-        durationSeconds,
-        resolution,
-        generateAudio: true,
-      },
+      instances: [instance],
+      parameters,
     }),
     signal,
   });
@@ -123,6 +195,13 @@ export async function generateAndStoreVideo({
       ? (latestOperation.error as { message: string }).message
       : "视频生成失败";
     throw new Error(message);
+  }
+
+  const raiMediaFilteredCount = Number((latestOperation.response as Record<string, unknown> | undefined)?.raiMediaFilteredCount);
+  if (Number.isFinite(raiMediaFilteredCount) && raiMediaFilteredCount > 0) {
+    const reasons = (latestOperation.response as { raiMediaFilteredReasons?: unknown[] } | undefined)?.raiMediaFilteredReasons;
+    const reasonText = Array.isArray(reasons) ? reasons.map((item) => String(item)).filter(Boolean).join("；") : "";
+    throw new Error(reasonText || "视频内容未通过安全审核");
   }
 
   const response = latestOperation.response;

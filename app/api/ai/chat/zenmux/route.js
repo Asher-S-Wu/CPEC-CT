@@ -28,9 +28,11 @@ import {
   parseSystemPrompt,
 } from "@/lib/ai/server/chat/requestConfig";
 import {
-  buildResponsesRequest,
+  buildChatCompletionsRequest,
   createZenMuxOpenAIClient,
-  getResponsesCompletedUsage,
+  getChatCompletionChunkDelta,
+  getChatCompletionChunkThoughtDelta,
+  getChatCompletionCompletedUsage,
   normalizeOpenAIError,
 } from "@/lib/ai/server/zenmux/openai";
 import {
@@ -49,23 +51,11 @@ import { logError } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function buildZenMuxResponsesProviderState({ responseId, previousResponseId, usage }) {
+function buildZenMuxChatProviderState({ completionId, usage }) {
   const state = {};
-  if (typeof responseId === "string" && responseId.trim()) state.responseId = responseId.trim();
-  if (typeof previousResponseId === "string" && previousResponseId.trim()) state.previousResponseId = previousResponseId.trim();
+  if (typeof completionId === "string" && completionId.trim()) state.completionId = completionId.trim();
   if (usage && typeof usage === "object" && !Array.isArray(usage)) state.usage = usage;
-  return Object.keys(state).length > 0 ? { zenmuxResponses: state } : undefined;
-}
-
-function getStoredZenMuxResponseId(messages) {
-  if (!Array.isArray(messages)) return "";
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (message?.role !== "model") continue;
-    const responseId = message?.providerState?.zenmuxResponses?.responseId;
-    if (typeof responseId === "string" && responseId.trim()) return responseId.trim();
-  }
-  return "";
+  return Object.keys(state).length > 0 ? { zenmuxChatCompletions: state } : undefined;
 }
 
 export async function POST(req) {
@@ -156,7 +146,6 @@ export async function POST(req) {
 
     let chatMessages = [];
     let storedMessagesForRegenerate = null;
-    let previousResponseId = "";
 
     const collectAttachmentUrls = (msgs) => msgs.flatMap((msg) =>
       Array.isArray(msg?.parts)
@@ -188,24 +177,18 @@ export async function POST(req) {
       const msgs = storedMessagesForRegenerate;
       const historyBeforeCurrentPrompt = Array.isArray(msgs) && msgs[msgs.length - 1]?.role === "user" ? msgs.slice(0, -1) : msgs;
       const currentTurn = Array.isArray(msgs) && msgs[msgs.length - 1]?.role === "user" ? [msgs[msgs.length - 1]] : [];
-      previousResponseId = getStoredZenMuxResponseId(historyBeforeCurrentPrompt);
-      const effectiveHistory = previousResponseId
-        ? []
-        : ((limit > 0) ? historyBeforeCurrentPrompt.slice(-limit) : historyBeforeCurrentPrompt);
+      const effectiveHistory = (limit > 0) ? historyBeforeCurrentPrompt.slice(-limit) : historyBeforeCurrentPrompt;
       const inputMessages = [...effectiveHistory, ...currentTurn];
       const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(inputMessages), {
         userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
       });
       chatMessages = await buildChatMessagesFromHistory(inputMessages, { fileTextMap });
     } else {
-      previousResponseId = getStoredZenMuxResponseId(previousMessages);
-      if (!previousResponseId) {
-        const effectiveHistory = (limit > 0) ? history.slice(-limit) : history;
-        const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(effectiveHistory), {
-          userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
-        });
-        chatMessages = await buildChatMessagesFromHistory(effectiveHistory, { fileTextMap });
-      }
+      const effectiveHistory = (limit > 0) ? history.slice(-limit) : history;
+      const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(effectiveHistory), {
+        userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
+      });
+      chatMessages = await buildChatMessagesFromHistory(effectiveHistory, { fileTextMap });
     }
 
     const userSystemPrompt = parseSystemPrompt(config?.systemPrompt);
@@ -301,7 +284,7 @@ export async function POST(req) {
         let fullText = "";
         let fullThought = "";
         let finalUsage = null;
-        let finalResponseId = "";
+        let finalCompletionId = "";
         let finalMessagePersisted = false;
 
         const rollbackCurrentTurn = async () => {
@@ -335,12 +318,11 @@ export async function POST(req) {
             userSystemPrompt, systemPromptSuffix, enableWebSearch: false, searchContextSection: "",
           });
 
-          const stream = await zenMuxClient.responses.create(
-            buildResponsesRequest({
+          const stream = await zenMuxClient.chat.completions.create(
+            buildChatCompletionsRequest({
               model: apiModel,
-              input: chatMessages,
-              instructions: systemPrompt,
-              previousResponseId,
+              messages: chatMessages,
+              system: systemPrompt,
               stream: true,
               reasoningEffort: "high",
             }),
@@ -350,27 +332,26 @@ export async function POST(req) {
           for await (const chunk of stream) {
             if (clientAborted) break;
 
-            if (chunk?.type === "response.output_text.delta") {
-              const delta = typeof chunk.delta === "string" ? chunk.delta : "";
-              if (delta) {
-                fullText += delta;
-                sendEvent({ type: "text", content: delta });
-              }
-              continue;
+            if (typeof chunk?.id === "string" && chunk.id.trim()) {
+              finalCompletionId = chunk.id.trim();
             }
 
-            if (chunk?.type === "response.reasoning_summary_text.delta") {
-              const delta = typeof chunk.delta === "string" ? chunk.delta : "";
-              if (delta) {
-                fullThought += delta;
-                sendEvent({ type: "thought", content: delta });
-              }
-              continue;
+            const delta = getChatCompletionChunkDelta(chunk);
+            const textDelta = typeof delta?.content === "string" ? delta.content : "";
+            if (textDelta) {
+              fullText += textDelta;
+              sendEvent({ type: "text", content: textDelta });
             }
 
-            if (chunk?.type === "response.completed") {
-              finalUsage = getResponsesCompletedUsage(chunk);
-              finalResponseId = typeof chunk.response?.id === "string" ? chunk.response.id : "";
+            const thoughtDelta = getChatCompletionChunkThoughtDelta(chunk);
+            if (thoughtDelta) {
+              fullThought += thoughtDelta;
+              sendEvent({ type: "thought", content: thoughtDelta });
+            }
+
+            const usage = getChatCompletionCompletedUsage(chunk);
+            if (usage) {
+              finalUsage = usage;
             }
           }
 
@@ -386,9 +367,8 @@ export async function POST(req) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
           if (user && currentConversationId) {
-            const providerState = buildZenMuxResponsesProviderState({
-              responseId: finalResponseId,
-              previousResponseId,
+            const providerState = buildZenMuxChatProviderState({
+              completionId: finalCompletionId,
               usage: finalUsage,
             });
             const modelMessage = {
