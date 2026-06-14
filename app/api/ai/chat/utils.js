@@ -146,39 +146,6 @@ function isAllowedStoredImageUrl(url) {
     return isAllowedImageDomain(url);
 }
 
-export async function fetchImageAsBase64(url) {
-    return fetchBlobAsBase64(url, { resourceLabel: "image" });
-}
-
-export async function fetchBlobAsBase64(url, { resourceLabel = "file" } = {}) {
-    if (typeof url !== "string" || !url.trim()) {
-        throw new Error(`Invalid ${resourceLabel} url`);
-    }
-
-    let parsed;
-    try {
-        parsed = new URL(url);
-    } catch {
-        throw new Error(`Invalid ${resourceLabel} url`);
-    }
-
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        throw new Error(`Invalid ${resourceLabel} url protocol`);
-    }
-
-    if (!isAllowedImageDomain(url)) {
-        throw new Error(`${resourceLabel} domain not allowed`);
-    }
-
-    const imgRes = await fetch(url, { cache: "no-store" });
-    if (!imgRes.ok) throw new Error(`Failed to fetch ${resourceLabel} from blob`);
-
-    const arrayBuffer = await imgRes.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString("base64");
-    const mimeType = imgRes.headers.get("content-type");
-    return { base64Data, mimeType };
-}
-
 export function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim().length > 0;
 }
@@ -285,28 +252,6 @@ export function sanitizeStoredMessage(msg) {
     if (msg.providerState && typeof msg.providerState === 'object') out.providerState = msg.providerState;
     out.parts = normalizedParts;
     return out;
-}
-
-export function sanitizeStoredMessages(messages) {
-    if (!Array.isArray(messages)) return [];
-    return messages.map(sanitizeStoredMessage).filter(Boolean);
-}
-
-export function buildContextSafeHistoryMessages(messages) {
-    if (!Array.isArray(messages)) return [];
-    return messages
-        .map((message) => {
-            if (!message || typeof message !== 'object') return null;
-            if (message.role !== 'user' && message.role !== 'model') return null;
-            const parts = getStoredPartsFromMessage(message);
-            if (!parts || parts.length === 0) return null;
-            return {
-                role: message.role,
-                content: typeof message.content === 'string' ? message.content : '',
-                parts,
-            };
-        })
-        .filter(Boolean);
 }
 
 export function sanitizeStoredMessagesStrict(messages) {
@@ -441,28 +386,4 @@ export async function injectCurrentTimeSystemReminder(systemText) {
 
     const reminder = `\n\n<system-reminder>\n${reminderContent}\n</system-reminder>`;
     return `${systemText}${reminder}`;
-}
-
-/**
- * 服务端估算文本的 token 数量
- * 中文字符 ~1.5 token，ASCII ~0.25 token/字符，其他 ~0.5 token/字符
- */
-export function estimateTokens(text) {
-    if (!text || typeof text !== 'string' || text.length === 0) return 0;
-    let total = 0;
-    for (let i = 0; i < text.length; i++) {
-        const c = text.charCodeAt(i);
-        if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF)) {
-            total += 1.5;
-        } else if (c >= 0x3000 && c <= 0x303F) {
-            total += 1;
-        } else if (c >= 0xFF00 && c <= 0xFFEF) {
-            total += 1;
-        } else if (c <= 0x7F) {
-            total += 0.25;
-        } else {
-            total += 0.5;
-        }
-    }
-    return Math.max(1, Math.ceil(total));
 }

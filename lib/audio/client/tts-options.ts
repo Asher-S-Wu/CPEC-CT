@@ -2,12 +2,6 @@ export const PRIMARY_MODELS = [
   { id: 'qwen3-tts-flash', name: 'Qwen3 TTS Flash', description: '百炼官方语音合成模型，适合常规文本转语音' },
 ] as const;
 
-export const LATEST_SPEECH_MODEL_IDS = PRIMARY_MODELS.map((model) => model.id);
-
-export function isLatestSpeechModel(model: unknown): model is typeof LATEST_SPEECH_MODEL_IDS[number] {
-  return typeof model === 'string' && LATEST_SPEECH_MODEL_IDS.includes(model as typeof LATEST_SPEECH_MODEL_IDS[number]);
-}
-
 export const LANGUAGES = [
   { code: 'auto', name: '自动识别' },
   { code: 'Chinese', name: '中文' },

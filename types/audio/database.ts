@@ -1,5 +1,4 @@
 import type { ObjectId } from 'mongodb';
-import type { SubtitleSentence } from '@/lib/audio/subtitle/format';
 
 export interface Voice {
   _id?: ObjectId;
@@ -27,8 +26,6 @@ export interface TTSHistory {
   parameters?: Record<string, unknown>;
   createdAt: Date;
 }
-
-export type { SubtitleSentence };
 
 export interface SubtitleHistory {
   _id?: ObjectId;

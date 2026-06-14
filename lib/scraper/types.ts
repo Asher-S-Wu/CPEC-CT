@@ -12,7 +12,6 @@ export const SCRAPER_RUN_TRIGGERS = ["manual"] as const;
 
 export type ScraperSourceKind = (typeof SCRAPER_SOURCE_KINDS)[number];
 export type ScraperRecordKind = (typeof SCRAPER_RECORD_KINDS)[number];
-export type ScraperOutputFormat = (typeof SCRAPER_OUTPUT_FORMATS)[number];
 export type ScraperDeliveryMode = (typeof SCRAPER_DELIVERY_MODES)[number];
 export type ScraperSkillKey = (typeof SCRAPER_SKILL_KEYS)[number];
 export type ScraperRunStatus = (typeof SCRAPER_RUN_STATUSES)[number];
@@ -86,20 +85,6 @@ export interface ScraperRecordDoc {
   lastSeenAt: Date;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface ScraperResultView {
-  id: string;
-  kind: ScraperRecordKind;
-  title: string;
-  url: string;
-  finalUrl: string;
-  summary: string;
-  jsonText: string;
-  outputFormats: string;
-  publishedAt: Date | null;
-  statusCode: number | null;
-  metricsText: string;
 }
 
 export interface ScraperSourceListItem {

@@ -156,8 +156,3 @@ export async function subtitleHistoryCollection(): Promise<Collection<SubtitleHi
   await ensureMongoIndexes();
   return (await getDb()).collection<SubtitleHistory>("subtitle_history");
 }
-
-export async function systemStateCollection(): Promise<Collection<SystemStateDoc>> {
-  await ensureMongoIndexes();
-  return (await getDb()).collection<SystemStateDoc>("system_state");
-}

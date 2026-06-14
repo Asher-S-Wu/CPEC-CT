@@ -56,18 +56,6 @@ export function isValidAudioUrl(input: string) {
   return isHttpUrl(input);
 }
 
-export function isVercelBlobUrl(input: string) {
-  try {
-    const url = new URL(input);
-    const host = url.hostname.toLowerCase();
-    return url.protocol === 'https:' &&
-      host.endsWith('.vercel-storage.com') &&
-      host.includes('.blob.');
-  } catch {
-    return false;
-  }
-}
-
 export function isPrivateBlobUrl(input: string) {
   try {
     const url = new URL(input);
@@ -87,32 +75,6 @@ export function buildAudioBlobUrl(blobUrl: string) {
     : AUDIO_BLOB_ROUTE_PREFIX;
 }
 
-function isLikelyHexString(input: string) {
-  return input.length > 128 && /^[0-9a-fA-F]+$/.test(input);
-}
-
-function isLikelyBase64String(input: string) {
-  const normalized = input.replace(/\s+/g, '');
-  return normalized.length > 128 && /^[A-Za-z0-9+/]+=*$/.test(normalized);
-}
-
-function parseBase64DataUrl(input: string) {
-  if (!input.startsWith('data:')) return null;
-
-  const commaIndex = input.indexOf(',');
-  if (commaIndex < 0) return null;
-
-  const header = input.slice(0, commaIndex);
-  const data = input.slice(commaIndex + 1);
-  if (!header.endsWith(';base64') || !data) return null;
-
-  const match = header.match(/^data:(.*?);base64$/);
-  return {
-    mimeType: match?.[1] || 'audio/mpeg',
-    data,
-  };
-}
-
 async function putAudioBlob(filename: string, buffer: Buffer, contentType: string) {
   const blob = await put(filename, buffer, {
     access: 'private',
@@ -124,15 +86,6 @@ async function putAudioBlob(filename: string, buffer: Buffer, contentType: strin
     blobUrl: blob.url,
     mimeType: contentType,
   };
-}
-
-export async function saveAudioBase64(base64Data: string, mimeType: string, prefix = 'audio') {
-  const normalizedMimeType = getAudioMimeType(getExtFromMimeType(mimeType));
-  const ext = getExtFromMimeType(mimeType || normalizedMimeType);
-  const filename = makeFilename(prefix, ext);
-  const buffer = Buffer.from(base64Data || '', 'base64');
-
-  return putAudioBlob(filename, buffer, mimeType || normalizedMimeType);
 }
 
 export async function saveAudioBuffer(
@@ -153,46 +106,4 @@ export async function saveAudioBuffer(
   }
 
   return putAudioBlob(filename, buffer, mimeType || getAudioMimeType(ext));
-}
-
-export async function saveAudioFromUrl(url: string, hintedMimeType?: string, prefix = 'audio') {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`下载音频失败 (${response.status})`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const contentType = response.headers.get('content-type') || hintedMimeType || 'audio/mpeg';
-  return saveAudioBuffer(arrayBuffer, contentType, prefix);
-}
-
-export async function normalizeAudioForStorage(input: string, hintedMimeType = 'audio/mpeg', prefix = 'audio') {
-  const value = String(input || '').trim();
-  if (!value) return '';
-
-  const dataUrl = parseBase64DataUrl(value);
-  if (dataUrl) {
-    const saved = await saveAudioBase64(dataUrl.data, dataUrl.mimeType || hintedMimeType, prefix);
-    return saved.url;
-  }
-
-  if (isHttpUrl(value)) {
-    if (isVercelBlobUrl(value)) {
-      return buildAudioBlobUrl(value);
-    }
-    const saved = await saveAudioFromUrl(value, hintedMimeType, prefix);
-    return saved.url;
-  }
-
-  if (isLikelyHexString(value)) {
-    const saved = await saveAudioBase64(Buffer.from(value, 'hex').toString('base64'), hintedMimeType, prefix);
-    return saved.url;
-  }
-
-  if (isLikelyBase64String(value)) {
-    const saved = await saveAudioBase64(value, hintedMimeType, prefix);
-    return saved.url;
-  }
-
-  return '';
 }

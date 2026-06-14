@@ -7,9 +7,6 @@ export type Role = (typeof ROLES)[number];
 export const AUTH_PROVIDERS = ["password"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
-export const SOURCE_APPS = ["ai", "audio", "scraper"] as const;
-export type SourceApp = (typeof SOURCE_APPS)[number];
-
 export interface UserDoc {
   _id: ObjectId;
   email: string;

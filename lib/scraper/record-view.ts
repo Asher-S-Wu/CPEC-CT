@@ -1,4 +1,4 @@
-import type { ScraperRecordDoc, ScraperResultView } from "@/lib/scraper/types";
+import type { ScraperRecordDoc } from "@/lib/scraper/types";
 
 function safeStringify(value: unknown) {
   try {
@@ -18,14 +18,6 @@ function formatDateTime(value?: Date | null) {
     : "";
 }
 
-function shortText(value: string, maxLength = 120) {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return "";
-  }
-  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
-}
-
 function getPagePayload(record: ScraperRecordDoc) {
   return {
     metadata: (record.payload.metadata ?? {}) as Record<string, unknown>,
@@ -37,43 +29,6 @@ function getPagePayload(record: ScraperRecordDoc) {
     links: Array.isArray(record.payload.links) ? record.payload.links : [],
     finalUrl: typeof record.payload.finalUrl === "string" ? record.payload.finalUrl : "",
     statusCode: typeof record.payload.statusCode === "number" ? record.payload.statusCode : null
-  };
-}
-
-export function toScraperResultView(record: ScraperRecordDoc): ScraperResultView {
-  const page = getPagePayload(record);
-  const outputFormats = [
-    page.markdown ? "markdown" : "",
-    page.html ? "html" : "",
-    page.rawHtml ? "raw_html" : "",
-    page.summary ? "summary" : "",
-    page.links.length > 0 ? "links" : "",
-    page.extractedJson ? "json" : ""
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  const finalUrl =
-    page.finalUrl ||
-    (typeof record.payload.finalUrl === "string" ? record.payload.finalUrl : "") ||
-    record.url;
-
-  const summary =
-    page.summary ||
-    shortText(page.markdown || page.html || page.rawHtml || (typeof record.payload.snippet === "string" ? record.payload.snippet : ""));
-
-  return {
-    id: String(record._id),
-    kind: record.kind,
-    title: record.title,
-    url: record.url,
-    finalUrl,
-    summary,
-    jsonText: page.extractedJson ? shortText(safeStringify(page.extractedJson), 160) : "",
-    outputFormats,
-    publishedAt: record.publishedAt ?? null,
-    statusCode: page.statusCode,
-    metricsText: shortText(safeStringify(record.metrics), 120)
   };
 }
 
