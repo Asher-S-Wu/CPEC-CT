@@ -1047,6 +1047,7 @@ textarea {
 .auth-card {
   position: relative;
   z-index: 1;
+  --primary-foreground: 0 0% 100%;
   width: 100%;
   max-width: 430px;
   border: 1px solid rgba(255, 250, 240, 0.72);
@@ -1097,6 +1098,50 @@ textarea {
   flex: 1;
   height: 1px;
   background: rgba(221, 213, 200, 0.86);
+}
+
+html[data-oa-theme="dark"] .auth-card,
+.dark .auth-card,
+[data-theme="dark"] .auth-card {
+  --border: 216 26% 28%;
+  --input: 216 26% 28%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 31% 16%;
+  --oa-ink: #fff7ed;
+  --oa-ink-2: #d8e0ea;
+  --oa-muted: #aeb8c8;
+  --oa-muted-soft: #7f8da3;
+  --oa-blue: #8fd0f0;
+  --oa-paper-soft: rgba(127, 185, 220, 0.1);
+  --oa-control-bg: #101826;
+  --oa-control-border: rgba(143, 208, 240, 0.24);
+  --oa-control-hover-border: rgba(143, 208, 240, 0.56);
+  --oa-control-hover-shadow: 0 0 0 3px rgba(143, 208, 240, 0.1);
+  --oa-control-focus-shadow: 0 0 0 3px rgba(143, 208, 240, 0.18);
+  border-color: rgba(143, 208, 240, 0.2);
+  background:
+    linear-gradient(180deg, rgba(23, 32, 51, 0.98), rgba(15, 23, 42, 0.96));
+  box-shadow: 0 28px 76px rgba(0, 0, 0, 0.48);
+}
+
+html[data-oa-theme="dark"] .auth-card .auth-title,
+.dark .auth-card .auth-title,
+[data-theme="dark"] .auth-card .auth-title {
+  color: var(--oa-ink);
+}
+
+html[data-oa-theme="dark"] .auth-card input,
+.dark .auth-card input,
+[data-theme="dark"] .auth-card input {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-oa-theme="dark"] .auth-card .error-text,
+.dark .auth-card .error-text,
+[data-theme="dark"] .auth-card .error-text {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.26);
+  background: rgba(127, 29, 29, 0.22);
 }
 
 @keyframes oaFadeSlideUp {

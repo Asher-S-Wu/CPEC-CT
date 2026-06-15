@@ -36,7 +36,6 @@ const navItems: SidebarNavSection[] = [
     section: "核心能力",
     icon: <LayoutDashboard className="h-3.5 w-3.5" />,
     items: [
-      { href: "/", label: "总览看板", icon: <LayoutDashboard className="w-5 h-5" /> },
       { href: "/ai", label: "文本工具", icon: <Sparkles className="w-5 h-5" /> },
       { href: "/video-brief", label: "视频速览", icon: <Clapperboard className="w-5 h-5" /> },
       { href: "/media", label: "媒体工具", icon: <Clapperboard className="w-5 h-5" /> },

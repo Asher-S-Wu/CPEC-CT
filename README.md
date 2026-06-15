@@ -63,7 +63,7 @@ npm run build && npm run start
 ```
 app/
   (auth)/login        邮箱密码注册 / 登录页
-  (dashboard)/        总览看板、数据采集、设置
+  (dashboard)/        数据采集、设置（根路径 / 重定向至 /ai）
   ai/                 AI 多模型对话前端
   audio/              音频工具前端
   api/                后端接口（auth / ai / audio / scraper）

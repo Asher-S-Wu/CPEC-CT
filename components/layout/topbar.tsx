@@ -7,7 +7,6 @@ import { formatRoleLabel } from "@/lib/labels";
 import { Menu } from "lucide-react";
 
 const BREADCRUMB_MAP: Record<string, string> = {
-  "/": "总览看板",
   "/audio": "音频工具",
   "/audio/text-to-speech": "文本转语音",
   "/audio/tts-history": "生成历史",
@@ -31,8 +30,6 @@ type Breadcrumb = {
 };
 
 function buildBreadcrumbs(pathname: string) {
-  if (pathname === "/") return [{ label: "总览看板", href: "/" as Route }];
-
   const segments = pathname.split("/").filter(Boolean);
   const crumbs: Breadcrumb[] = [];
 
@@ -45,7 +42,7 @@ function buildBreadcrumbs(pathname: string) {
     }
   }
 
-  return crumbs.length > 0 ? crumbs : [{ label: "总览看板", href: "/" as Route }];
+  return crumbs.length > 0 ? crumbs : [{ label: "工作台", href: "/ai" as Route }];
 }
 
 interface TopbarProps {
