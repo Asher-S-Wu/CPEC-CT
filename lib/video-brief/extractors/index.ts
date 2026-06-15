@@ -1,8 +1,13 @@
 import { isIP } from "net";
+import crypto from "crypto";
+import { isPrivateBlobUrl } from "@/lib/media/storage";
+import { downloadVideoWithYtDlp } from "@/lib/video-brief/sandbox-downloader";
 import type { ExtractedVideoSource } from "@/types/video-brief";
 
 const DIRECT_VIDEO_RE = /\.(mp4|m3u8|flv|mov|webm)(?:$|[?#])/i;
 const HLS_MIME_TYPES = new Set(["application/x-mpegurl", "application/vnd.apple.mpegurl"]);
+const VIDEO_BRIEF_MEDIA_ROUTE = "/api/video-brief/media";
+const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36";
 
 export class VideoSourceError extends Error {
   status: number;
@@ -91,7 +96,7 @@ function isPrivateIp(hostname: string) {
     a === 0;
 }
 
-function assertPublicHttpUrl(input: string) {
+export function assertPublicHttpUrl(input: string) {
   let parsed: URL;
   try {
     parsed = new URL(input);
@@ -133,6 +138,11 @@ function getPlatform(url: string) {
   if (host === "x.com" || host.endsWith("twitter.com")) return "X";
   if (host.endsWith("yangshipin.cn")) return "央视频";
   return "公开视频";
+}
+
+function isBilibiliUrl(url: string) {
+  const host = getHost(url).replace(/^www\./, "");
+  return host === "b23.tv" || host.endsWith("bilibili.com");
 }
 
 function isDirectVideoUrl(url: string) {
@@ -201,20 +211,125 @@ function buildDirectSource(url: string): ExtractedVideoSource {
   };
 }
 
-export async function extractVideoSource(inputUrl: string, signal?: AbortSignal): Promise<ExtractedVideoSource> {
+function getPageRequestHeaders(referer: string) {
+  return {
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+    Referer: referer,
+    "User-Agent": BROWSER_UA,
+  };
+}
+
+function getVideoBriefMediaSecret() {
+  const secret = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!secret) {
+    throw new VideoSourceError("缺少视频媒体代理签名配置", 500);
+  }
+  return secret;
+}
+
+function signMediaUrl(mediaUrl: string, exp: number) {
+  return crypto
+    .createHmac("sha256", getVideoBriefMediaSecret())
+    .update(`${mediaUrl}:${exp}`)
+    .digest("hex");
+}
+
+export function buildSignedVideoBriefMediaUrl(mediaUrl: string, publicOrigin: string, expiresInSeconds = 12 * 60 * 60) {
+  assertPublicHttpUrl(mediaUrl);
+  const origin = new URL(publicOrigin);
+  if (origin.protocol !== "http:" && origin.protocol !== "https:") {
+    throw new VideoSourceError("媒体代理地址配置无效", 500);
+  }
+  const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
+  const signed = new URL(VIDEO_BRIEF_MEDIA_ROUTE, origin.origin);
+  signed.searchParams.set("url", mediaUrl);
+  signed.searchParams.set("exp", String(exp));
+  signed.searchParams.set("sig", signMediaUrl(mediaUrl, exp));
+  return signed.toString();
+}
+
+export function verifyVideoBriefMediaSignature(mediaUrl: string, exp: string, sig: string) {
+  const expNum = Number(exp);
+  if (!mediaUrl || !expNum || expNum < Math.floor(Date.now() / 1000)) {
+    return false;
+  }
+  if (!/^[a-f0-9]{64}$/i.test(sig)) {
+    return false;
+  }
+  const expected = signMediaUrl(mediaUrl, expNum);
+  return crypto.timingSafeEqual(Buffer.from(sig, "hex"), Buffer.from(expected, "hex"));
+}
+
+export function isVideoBriefSignedMediaUrl(input: string) {
+  return isPrivateBlobUrl(input);
+}
+
+export function fetchVideoBriefSignedMediaUrl(input: string, range?: string | null) {
+  if (!isPrivateBlobUrl(input)) {
+    throw new VideoSourceError("非法的视频媒体地址", 403);
+  }
+
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new VideoSourceError("缺少 BLOB_READ_WRITE_TOKEN 环境变量", 500);
+  }
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  if (range) {
+    headers.Range = range;
+  }
+  return fetch(input, { headers });
+}
+
+async function extractBilibiliSourceWithYtDlp(
+  sourceUrl: string,
+  signal: AbortSignal | undefined,
+  publicOrigin: string | undefined,
+  userId: string | undefined,
+): Promise<ExtractedVideoSource> {
+  if (!publicOrigin) {
+    throw new VideoSourceError("缺少视频媒体代理地址", 500);
+  }
+  if (!userId) {
+    throw new VideoSourceError("缺少视频解析用户信息", 500);
+  }
+
+  const video = await downloadVideoWithYtDlp({ url: sourceUrl, userId, signal });
+  return {
+    sourceUrl,
+    canonicalUrl: video.canonicalUrl || sourceUrl,
+    platform: "哔哩哔哩",
+    title: video.title,
+    author: video.author,
+    coverUrl: video.coverUrl,
+    durationSeconds: video.durationSeconds,
+    videoUrl: buildSignedVideoBriefMediaUrl(video.blobUrl, publicOrigin),
+  };
+}
+
+export async function extractVideoSource(
+  inputUrl: string,
+  signal?: AbortSignal,
+  options: { publicOrigin?: string; userId?: string } = {},
+): Promise<ExtractedVideoSource> {
   const parsed = assertPublicHttpUrl(String(inputUrl || "").trim());
   const sourceUrl = parsed.toString();
   const platform = getPlatform(sourceUrl);
+
+  if (isBilibiliUrl(sourceUrl)) {
+    return extractBilibiliSourceWithYtDlp(sourceUrl, signal, options.publicOrigin, options.userId);
+  }
 
   if (isDirectVideoUrl(sourceUrl)) {
     return buildDirectSource(sourceUrl);
   }
 
   const response = await fetch(sourceUrl, {
-    headers: {
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "User-Agent": "Mozilla/5.0 (compatible; CPEC-VideoBrief/1.0)",
-    },
+    headers: getPageRequestHeaders(sourceUrl),
     redirect: "follow",
     signal,
   });
