@@ -3,6 +3,7 @@ import { getEnv } from "@/lib/env";
 import { logError } from "@/lib/logger";
 import type { SessionDoc, SystemStateDoc, UserDoc } from "@/types/domain";
 import type { SubtitleHistory, TTSHistory, Voice } from "@/types/audio/database";
+import type { VideoBriefArchiveDoc } from "@/types/video-brief";
 
 declare global {
   var mongoClientPromise: Promise<MongoClient> | undefined;
@@ -116,7 +117,9 @@ export async function ensureMongoIndexes() {
           db.collection("ai_user_settings").createIndex({ userId: 1 }, { unique: true }),
           db.collection("ai_blob_files").createIndex({ url: 1 }, { unique: true }),
           db.collection("ai_blob_files").createIndex({ userId: 1, createdAt: -1 }),
-          db.collection("ai_blob_files").createIndex({ userId: 1, kind: 1, createdAt: -1 })
+          db.collection("ai_blob_files").createIndex({ userId: 1, kind: 1, createdAt: -1 }),
+          db.collection<VideoBriefArchiveDoc>("video_brief_archives").createIndex({ userId: 1, createdAt: -1 }),
+          db.collection<VideoBriefArchiveDoc>("video_brief_archives").createIndex({ userId: 1, "analysis.tags": 1 })
         ]);
         global.studioIndexesReady = true;
       } catch (error) {
@@ -155,4 +158,9 @@ export async function ttsHistoryCollection(): Promise<Collection<TTSHistory>> {
 export async function subtitleHistoryCollection(): Promise<Collection<SubtitleHistory>> {
   await ensureMongoIndexes();
   return (await getDb()).collection<SubtitleHistory>("subtitle_history");
+}
+
+export async function videoBriefArchivesCollection(): Promise<Collection<VideoBriefArchiveDoc>> {
+  await ensureMongoIndexes();
+  return (await getDb()).collection<VideoBriefArchiveDoc>("video_brief_archives");
 }

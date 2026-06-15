@@ -1,0 +1,64 @@
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { requireApiSession } from "@/lib/auth";
+import { failJson, okJson, parseJsonBody } from "@/lib/api";
+import { logError } from "@/lib/logger";
+import { analyzeVideo, VIDEO_BRIEF_MODEL } from "@/lib/video-brief/analyzer";
+import { extractVideoSource } from "@/lib/video-brief/extractors";
+import { serializeVideoBriefArchive, VideoBriefArchiveRepository } from "@/lib/video-brief/repository";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const analyzeSchema = z.object({
+  url: z.string().trim().min(1, "请输入视频网址").max(2000, "视频网址太长"),
+});
+
+function getErrorStatus(error: unknown) {
+  const status = typeof (error as { status?: unknown })?.status === "number"
+    ? (error as { status: number }).status
+    : 500;
+  return status >= 400 && status <= 599 ? status : 500;
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await requireApiSession(request);
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const parsed = await parseJsonBody(request, analyzeSchema);
+  if (!parsed.ok) {
+    return failJson(parsed.message, 400);
+  }
+
+  try {
+    const source = await extractVideoSource(parsed.data.url, request.signal);
+    const analysis = await analyzeVideo(source, request.signal);
+    const id = await VideoBriefArchiveRepository.create({
+      userId: auth.user._id,
+      sourceUrl: source.sourceUrl,
+      canonicalUrl: source.canonicalUrl,
+      platform: source.platform,
+      title: source.title,
+      author: source.author,
+      coverUrl: source.coverUrl,
+      durationSeconds: source.durationSeconds,
+      analysis,
+      model: VIDEO_BRIEF_MODEL,
+    });
+
+    const archive = await VideoBriefArchiveRepository.findById(id.toString(), auth.user._id.toString());
+    if (!archive) {
+      return failJson("归档保存失败", 500);
+    }
+
+    return okJson({
+      success: true,
+      archive: serializeVideoBriefArchive(archive),
+    });
+  } catch (error) {
+    logError("video-brief", "analyze video", error);
+    return failJson(error instanceof Error ? error.message : "视频速览失败", getErrorStatus(error));
+  }
+}

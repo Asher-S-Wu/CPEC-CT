@@ -1,5 +1,5 @@
 import { requirePageSession } from "@/lib/auth";
-import { subtitleHistoryCollection, ttsHistoryCollection, usersCollection, voicesCollection } from "@/lib/db";
+import { subtitleHistoryCollection, ttsHistoryCollection, usersCollection, videoBriefArchivesCollection, voicesCollection } from "@/lib/db";
 import { ensureScraperBootstrap } from "@/lib/scraper/bootstrap";
 import { scraperRecordsCollection, scraperSourcesCollection } from "@/lib/scraper/db";
 import Link from "next/link";
@@ -16,15 +16,17 @@ export default async function DashboardPage() {
   const voices = await voicesCollection();
   const ttsHistory = await ttsHistoryCollection();
   const subtitleHistory = await subtitleHistoryCollection();
+  const videoBriefArchives = await videoBriefArchivesCollection();
   const scraperSources = await scraperSourcesCollection();
   const scraperRecords = await scraperRecordsCollection();
   const scraperSourceIds = await scraperSources.find({ kind: "agent" }).map((item) => item._id).toArray();
 
-  const [totalUsers, totalVoices, totalTtsHistory, totalSubtitleHistory, totalScraperSources, totalScraperRecords] = await Promise.all([
+  const [totalUsers, totalVoices, totalTtsHistory, totalSubtitleHistory, totalVideoBriefArchives, totalScraperSources, totalScraperRecords] = await Promise.all([
     users.countDocuments({}),
     voices.countDocuments({}),
     ttsHistory.countDocuments({}),
     subtitleHistory.countDocuments({}),
+    videoBriefArchives.countDocuments({}),
     Promise.resolve(scraperSourceIds.length),
     scraperSourceIds.length > 0 ? scraperRecords.countDocuments({ sourceId: { $in: scraperSourceIds } }) : 0
   ]);
@@ -41,6 +43,17 @@ export default async function DashboardPage() {
       stats: [
         ["对话模型", chatModelCount],
         ["核心能力", 4]
+      ]
+    },
+    {
+      href: "/video-brief",
+      title: "视频速览",
+      description: "输入公开视频地址，沉淀速览、解读和标签归档。",
+      icon: <Clapperboard className="h-5 w-5" />,
+      tone: "gold",
+      stats: [
+        ["归档", totalVideoBriefArchives],
+        ["入口", 1]
       ]
     },
     {
@@ -81,7 +94,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 md:gap-8">
-      <section className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 xl:grid-cols-5">
         <MetricCard
           label="对话模型"
           value={chatModelCount}
@@ -102,6 +115,13 @@ export default async function DashboardPage() {
           description={`任务 ${totalScraperSources} · 记录 ${totalScraperRecords}`}
           icon={<Database className="h-5 w-5" />}
           tone="cyan"
+        />
+        <MetricCard
+          label="视频归档"
+          value={totalVideoBriefArchives}
+          description="速览 · 解读 · 标签"
+          icon={<Clapperboard className="h-5 w-5" />}
+          tone="gold"
         />
         <MetricCard
           label="注册用户"
@@ -127,7 +147,7 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4 md:p-5">
+            <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5 md:p-5">
               {modules.map((item) => (
                 <Link
                   href={item.href}
@@ -140,6 +160,7 @@ export default async function DashboardPage() {
                         item.tone === "green" ? "bg-[var(--soft-green)] text-[var(--audio-green)]" :
                         item.tone === "plum" ? "bg-[var(--soft-plum)] text-[var(--ai-plum)]" :
                         item.tone === "blue" ? "bg-[var(--soft-blue)] text-[var(--oa-blue)]" :
+                        item.tone === "gold" ? "bg-[var(--soft-gold)] text-[var(--oa-gold)]" :
                         "bg-[var(--soft-cyan)] text-[var(--data-cyan)]"
                       }`}>
                         {item.icon}
