@@ -1,11 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { logError } from "@/lib/logger";
-import {
-  fetchVideoBriefSignedMediaUrl,
-  isVideoBriefSignedMediaUrl,
-  verifyVideoBriefMediaSignature,
-} from "@/lib/video-brief/extractors";
+import { fetchVideoBriefMediaUrl } from "@/lib/video-brief/extractors";
+import { resolveVideoBriefMediaToken } from "@/lib/video-brief/media-tokens";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,17 +30,15 @@ function copyResponseHeaders(response: Response) {
 }
 
 export async function GET(request: NextRequest) {
-  const mediaUrl = request.nextUrl.searchParams.get("url") || "";
-  const exp = request.nextUrl.searchParams.get("exp") || "";
-  const sig = request.nextUrl.searchParams.get("sig") || "";
-  const referer = request.nextUrl.searchParams.get("ref") || "";
+  const token = request.nextUrl.searchParams.get("t") || "";
 
   try {
-    if (!verifyVideoBriefMediaSignature(mediaUrl, exp, sig, referer) || !isVideoBriefSignedMediaUrl(mediaUrl)) {
+    const media = await resolveVideoBriefMediaToken(token);
+    if (!media) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    const upstream = await fetchVideoBriefSignedMediaUrl(mediaUrl, request.headers.get("range"), referer);
+    const upstream = await fetchVideoBriefMediaUrl(media.mediaUrl, request.headers.get("range"), media.referer);
 
     return new NextResponse(upstream.body, {
       status: upstream.status,

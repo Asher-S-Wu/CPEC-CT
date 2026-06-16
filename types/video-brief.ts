@@ -32,6 +32,15 @@ export interface VideoBriefArchiveDoc {
   createdAt: Date;
 }
 
+export interface VideoBriefMediaTokenDoc {
+  _id?: ObjectId;
+  tokenHash: string;
+  mediaUrl: string;
+  referer: string;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
 export interface SerializedVideoBriefArchive {
   id: string;
   sourceUrl: string;

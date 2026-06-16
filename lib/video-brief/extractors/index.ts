@@ -1,6 +1,5 @@
 import { isIP } from "net";
-import crypto from "crypto";
-import { isPrivateBlobUrl } from "@/lib/media/storage";
+import { createVideoBriefMediaToken } from "@/lib/video-brief/media-tokens";
 import type { ExtractedVideoSource } from "@/types/video-brief";
 
 const DIRECT_VIDEO_RE = /\.(mp4|m3u8|flv|mov|webm)(?:$|[?#])/i;
@@ -365,22 +364,7 @@ function getPageRequestHeaders(referer: string) {
   };
 }
 
-function getVideoBriefMediaSecret() {
-  const secret = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!secret) {
-    throw new VideoSourceError("缺少视频媒体代理签名配置", 500);
-  }
-  return secret;
-}
-
-function signMediaUrl(mediaUrl: string, exp: number, referer = "") {
-  return crypto
-    .createHmac("sha256", getVideoBriefMediaSecret())
-    .update(`${mediaUrl}:${exp}:${referer}`)
-    .digest("hex");
-}
-
-export function buildSignedVideoBriefMediaUrl(
+export async function buildVideoBriefMediaProxyUrl(
   mediaUrl: string,
   publicOrigin: string,
   referer = "",
@@ -391,57 +375,20 @@ export function buildSignedVideoBriefMediaUrl(
   if (origin.protocol !== "http:" && origin.protocol !== "https:") {
     throw new VideoSourceError("媒体代理地址配置无效", 500);
   }
-  const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
-  const signed = new URL(VIDEO_BRIEF_MEDIA_ROUTE, origin.origin);
-  signed.searchParams.set("url", mediaUrl);
-  signed.searchParams.set("exp", String(exp));
-  if (referer) {
-    signed.searchParams.set("ref", referer);
+  if (!referer) {
+    throw new VideoSourceError("缺少视频来源信息", 500);
   }
-  signed.searchParams.set("sig", signMediaUrl(mediaUrl, exp, referer));
+  const token = await createVideoBriefMediaToken({ mediaUrl, referer, expiresInSeconds });
+  const signed = new URL(VIDEO_BRIEF_MEDIA_ROUTE, origin.origin);
+  signed.searchParams.set("t", token);
   return signed.toString();
 }
 
-export function verifyVideoBriefMediaSignature(mediaUrl: string, exp: string, sig: string, referer = "") {
-  const expNum = Number(exp);
-  if (!mediaUrl || !expNum || expNum < Math.floor(Date.now() / 1000)) {
-    return false;
-  }
-  if (!/^[a-f0-9]{64}$/i.test(sig)) {
-    return false;
-  }
-  const expected = signMediaUrl(mediaUrl, expNum, referer);
-  return crypto.timingSafeEqual(Buffer.from(sig, "hex"), Buffer.from(expected, "hex"));
-}
-
-export function isVideoBriefSignedMediaUrl(input: string) {
-  try {
-    assertPublicHttpUrl(input);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function fetchVideoBriefSignedMediaUrl(input: string, range?: string | null, referer = "") {
+export function fetchVideoBriefMediaUrl(input: string, range?: string | null, referer = "") {
   assertPublicHttpUrl(input);
 
-  if (isPrivateBlobUrl(input)) {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) {
-      throw new VideoSourceError("缺少 BLOB_READ_WRITE_TOKEN 环境变量", 500);
-    }
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${token}`,
-    };
-    if (range) {
-      headers.Range = range;
-    }
-    return fetch(input, { headers });
-  }
-
   if (!referer) {
-    throw new VideoSourceError("缺少视频来源签名信息", 403);
+    throw new VideoSourceError("缺少视频来源信息", 403);
   }
   const headers = getBilibiliMediaHeaders(referer, range);
   return fetch(input, { headers });
@@ -476,6 +423,7 @@ async function extractBilibiliSource(
   playApi.searchParams.set("platform", "html5");
   const playData = await fetchBilibiliApi(playApi, canonicalUrl, signal);
   const mediaUrl = pickBilibiliMediaUrl(playData);
+  const videoUrl = await buildVideoBriefMediaProxyUrl(mediaUrl, publicOrigin, canonicalUrl);
   const title = [viewData?.title, page.part]
     .map((item) => (typeof item === "string" ? item.trim() : ""))
     .filter(Boolean)
@@ -490,7 +438,7 @@ async function extractBilibiliSource(
     author: typeof viewData?.owner?.name === "string" ? viewData.owner.name.trim() : "",
     coverUrl: typeof viewData?.pic === "string" ? viewData.pic.trim() : "",
     durationSeconds: page.durationSeconds,
-    videoUrl: buildSignedVideoBriefMediaUrl(mediaUrl, publicOrigin, canonicalUrl),
+    videoUrl,
   };
 }
 
