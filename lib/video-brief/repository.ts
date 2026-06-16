@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { videoBriefArchivesCollection } from "@/lib/db";
+import { normalizeVideoBriefAssetUrl } from "@/lib/video-brief/urls";
 import type { SerializedVideoBriefArchive, VideoBriefArchiveDoc } from "@/types/video-brief";
 
 function toObjectId(id: string) {
@@ -27,7 +28,7 @@ export function serializeVideoBriefArchive(doc: VideoBriefArchiveDoc): Serialize
     platform: doc.platform,
     title: doc.title,
     author: doc.author,
-    coverUrl: doc.coverUrl,
+    coverUrl: normalizeVideoBriefAssetUrl(doc.coverUrl),
     durationSeconds: doc.durationSeconds,
     analysis: doc.analysis,
     model: doc.model,

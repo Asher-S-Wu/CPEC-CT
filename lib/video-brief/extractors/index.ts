@@ -1,5 +1,6 @@
 import { isIP } from "net";
 import { createVideoBriefMediaToken } from "@/lib/video-brief/media-tokens";
+import { normalizeVideoBriefAssetUrl } from "@/lib/video-brief/urls";
 import type { ExtractedVideoSource } from "@/types/video-brief";
 
 const DIRECT_VIDEO_RE = /\.(mp4|m3u8|flv|mov|webm)(?:$|[?#])/i;
@@ -436,7 +437,7 @@ async function extractBilibiliSource(
     platform: "哔哩哔哩",
     title,
     author: typeof viewData?.owner?.name === "string" ? viewData.owner.name.trim() : "",
-    coverUrl: typeof viewData?.pic === "string" ? viewData.pic.trim() : "",
+    coverUrl: normalizeVideoBriefAssetUrl(typeof viewData?.pic === "string" ? viewData.pic : ""),
     durationSeconds: page.durationSeconds,
     videoUrl,
   };
@@ -497,7 +498,7 @@ export async function extractVideoSource(
     platform,
     title: getTitle(html),
     author: getMetaContent(html, ["author", "article:author", "og:site_name"]),
-    coverUrl: getMetaContent(html, ["og:image:secure_url", "og:image", "twitter:image"]),
+    coverUrl: normalizeVideoBriefAssetUrl(getMetaContent(html, ["og:image:secure_url", "og:image", "twitter:image"])),
     durationSeconds,
     videoUrl,
   };
