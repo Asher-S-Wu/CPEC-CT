@@ -6,8 +6,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
-  "/api/audio/blob/download",
-  "/api/video-brief/media"
+  "/api/audio/blob/download"
 ];
 
 function isStaticPath(pathname: string) {
