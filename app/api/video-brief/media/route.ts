@@ -36,13 +36,14 @@ export async function GET(request: NextRequest) {
   const mediaUrl = request.nextUrl.searchParams.get("url") || "";
   const exp = request.nextUrl.searchParams.get("exp") || "";
   const sig = request.nextUrl.searchParams.get("sig") || "";
+  const referer = request.nextUrl.searchParams.get("ref") || "";
 
   try {
-    if (!verifyVideoBriefMediaSignature(mediaUrl, exp, sig) || !isVideoBriefSignedMediaUrl(mediaUrl)) {
+    if (!verifyVideoBriefMediaSignature(mediaUrl, exp, sig, referer) || !isVideoBriefSignedMediaUrl(mediaUrl)) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    const upstream = await fetchVideoBriefSignedMediaUrl(mediaUrl, request.headers.get("range"));
+    const upstream = await fetchVideoBriefSignedMediaUrl(mediaUrl, request.headers.get("range"), referer);
 
     return new NextResponse(upstream.body, {
       status: upstream.status,

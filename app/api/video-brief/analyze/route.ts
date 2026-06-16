@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
   try {
     const source = await extractVideoSource(parsed.data.url, request.signal, {
       publicOrigin: request.nextUrl.origin,
-      userId: auth.user._id.toString(),
     });
     const analysis = await analyzeVideo(source, request.signal);
     const id = await VideoBriefArchiveRepository.create({
