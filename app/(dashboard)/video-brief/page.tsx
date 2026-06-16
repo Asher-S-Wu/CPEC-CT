@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Archive,
   ChevronLeft,
@@ -196,6 +196,7 @@ export default function VideoBriefPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
   const [archiveError, setArchiveError] = useState("");
+  const analyzingRef = useRef(false);
 
   const selectedTags = useMemo(() => {
     const set = new Set<string>();
@@ -246,8 +247,11 @@ export default function VideoBriefPage() {
 
   const handleAnalyze = async (event: FormEvent) => {
     event.preventDefault();
+    if (analyzingRef.current) return;
+
     setError("");
     setCurrentArchive(null);
+    setExpandedId("");
 
     if (!url.trim()) {
       setError("请输入视频网址");
@@ -255,6 +259,7 @@ export default function VideoBriefPage() {
     }
 
     setAnalyzing(true);
+    analyzingRef.current = true;
     try {
       const response = await fetch("/api/video-brief/analyze", {
         method: "POST",
@@ -263,11 +268,11 @@ export default function VideoBriefPage() {
       });
       const data = await readJson(response);
       setCurrentArchive(data.archive);
-      setExpandedId(data.archive.id);
       await fetchArchives(1);
     } catch (analyzeError) {
       setError(getErrorMessage(analyzeError, "视频速览失败"));
     } finally {
+      analyzingRef.current = false;
       setAnalyzing(false);
     }
   };
