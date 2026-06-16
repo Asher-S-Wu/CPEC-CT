@@ -7,6 +7,9 @@ import { analyzeVideo, VIDEO_BRIEF_MODEL } from "@/lib/video-brief/analyzer";
 import { extractVideoSource } from "@/lib/video-brief/extractors";
 import { serializeVideoBriefArchive, VideoBriefArchiveRepository } from "@/lib/video-brief/repository";
 
+// 视频速览时长上限：10 分钟，超过则拦截，避免模型处理过长视频
+const MAX_VIDEO_DURATION_SECONDS = 10 * 60;
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -36,6 +39,13 @@ export async function POST(request: NextRequest) {
     const source = await extractVideoSource(parsed.data.url, request.signal, {
       publicOrigin: request.nextUrl.origin,
     });
+
+    // 视频时长超过 10 分钟则拦截，只有当平台能提供真实时长时才判断
+    if (source.durationSeconds > MAX_VIDEO_DURATION_SECONDS) {
+      const minutes = Math.round(source.durationSeconds / 60);
+      return failJson(`视频时长 ${minutes} 分钟，已超过 10 分钟的速览上限，请换一个更短的视频`, 400);
+    }
+
     const analysis = await analyzeVideo(source, request.signal);
     const id = await VideoBriefArchiveRepository.create({
       userId: auth.user._id,
