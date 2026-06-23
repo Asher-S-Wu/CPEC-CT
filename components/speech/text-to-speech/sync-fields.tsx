@@ -79,25 +79,31 @@ export function SyncFields(props: {
           <div className="space-y-2">
             <Label>模型</Label>
             <div className="grid gap-3 sm:grid-cols-2">
-              {PRIMARY_MODELS.map((model) => (
-                <label
-                  key={model.id}
-                  className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${
-                    form.model === model.id ? 'border-[#0a0a0a] bg-[#f5f5f5]' : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:bg-[var(--oa-paper-soft)]'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="sync-model"
-                    value={model.id}
-                    checked={form.model === model.id}
-                    onChange={(e) => setForm({ ...form, model: e.target.value })}
-                    className="sr-only"
-                  />
-                  <span className="font-medium">{model.name}</span>
-                  <span className="text-xs text-muted-foreground mt-1">{model.description}</span>
-                </label>
-              ))}
+              {PRIMARY_MODELS.map((model) => {
+                const selected = form.model === model.id;
+
+                return (
+                  <label
+                    key={model.id}
+                    className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${
+                      selected
+                        ? 'border-[var(--oa-ink)] bg-[var(--primary-light)]'
+                        : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[var(--oa-control-hover-border)] hover:bg-[var(--oa-paper-soft)]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="sync-model"
+                      value={model.id}
+                      checked={selected}
+                      onChange={(e) => setForm({ ...form, model: e.target.value })}
+                      className="sr-only"
+                    />
+                    <span className="font-medium text-[var(--oa-ink)]">{model.name}</span>
+                    <span className="mt-1 text-xs text-[var(--oa-muted)]">{model.description}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
