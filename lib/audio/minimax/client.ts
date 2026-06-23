@@ -27,15 +27,20 @@ async function parseJsonBody(text: string) {
 }
 
 async function postRaw(path: string, bodyString: string, signal?: AbortSignal) {
-  const response = await fetch(`${MINIMAX_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getApiKey()}`,
-      'Content-Type': 'application/json',
-    },
-    body: bodyString,
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${MINIMAX_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getApiKey()}`,
+        'Content-Type': 'application/json',
+      },
+      body: bodyString,
+      signal,
+    });
+  } catch (error) {
+    throw new Error('无法连接 MiniMax 语音服务', { cause: error });
+  }
 
   const data = await parseJsonBody(await response.text());
 
@@ -57,7 +62,12 @@ function toUint8Array(input: ArrayBuffer | Uint8Array | Buffer) {
 }
 
 export async function downloadRemoteFile(url: string, signal?: AbortSignal) {
-  const response = await fetch(url, { signal });
+  let response: Response;
+  try {
+    response = await fetch(url, { signal });
+  } catch (error) {
+    throw new Error('无法下载 MiniMax 生成的音频', { cause: error });
+  }
   if (!response.ok) {
     throw new Error(`音频下载失败（${response.status}）`);
   }
@@ -81,7 +91,7 @@ export async function synthesizeSpeech(input: {
       model: input.model,
       text: input.text,
       stream: false,
-      output_format: 'url',
+      output_format: 'hex',
       language_boost: input.languageBoost || 'auto',
       voice_setting: {
         voice_id: input.voiceId,
@@ -99,12 +109,19 @@ export async function synthesizeSpeech(input: {
     input.signal
   );
 
-  const audioUrl = data?.data?.audio;
-  if (!audioUrl || typeof audioUrl !== 'string') {
-    throw new Error('语音生成完成但未返回音频地址');
+  const audioHex = data?.data?.audio;
+  if (!audioHex || typeof audioHex !== 'string') {
+    throw new Error('语音生成完成但未返回音频数据');
   }
 
-  return { audioUrl, raw: data };
+  if (audioHex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(audioHex)) {
+    throw new Error('MiniMax 返回的音频数据格式不正确');
+  }
+
+  return {
+    audioBuffer: Buffer.from(audioHex, 'hex'),
+    raw: data,
+  };
 }
 
 export async function uploadFile(input: {
@@ -118,14 +135,19 @@ export async function uploadFile(input: {
   form.append('purpose', input.purpose);
   form.append('file', new Blob([toUint8Array(input.buffer).buffer as ArrayBuffer], { type: input.contentType }), input.filename);
 
-  const response = await fetch(`${MINIMAX_BASE_URL}/v1/files/upload`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getApiKey()}`,
-    },
-    body: form,
-    signal: input.signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${MINIMAX_BASE_URL}/v1/files/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getApiKey()}`,
+      },
+      body: form,
+      signal: input.signal,
+    });
+  } catch (error) {
+    throw new Error('无法连接 MiniMax 文件服务', { cause: error });
+  }
 
   const text = await response.text();
   const data = await parseJsonBody(text);

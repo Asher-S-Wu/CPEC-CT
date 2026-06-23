@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
-import { downloadRemoteFile, synthesizeSpeech } from '@/lib/audio/minimax/client';
+import { synthesizeSpeech } from '@/lib/audio/minimax/client';
 import { getAudioMimeType, saveAudioBuffer } from '@/lib/audio/storage';
 import { DEFAULT_TTS_VOICE, isSupportedSpeechModel } from '@/lib/audio/client/tts-options';
 import { logError } from '@/lib/logger';
@@ -63,9 +63,8 @@ export async function POST(request: NextRequest) {
       audioFormat,
       signal: request?.signal,
     });
-    const downloaded = await downloadRemoteFile(generated.audioUrl, request?.signal);
     const saved = await saveAudioBuffer(
-      downloaded.arrayBuffer,
+      generated.audioBuffer,
       getAudioMimeType(audioFormat),
       'tts-sync'
     );
