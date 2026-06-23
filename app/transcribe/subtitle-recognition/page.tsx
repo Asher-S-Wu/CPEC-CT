@@ -70,6 +70,7 @@ export default function SubtitleRecognitionPage() {
   const [hotwordsText, setHotwordsText] = useState('');
   const [translateLang, setTranslateLang] = useState<TranslateLanguage>('original');
   const [isTranslating, setIsTranslating] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const parseHotwords = (text: string) =>
     text
@@ -251,124 +252,140 @@ export default function SubtitleRecognitionPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            {recognitionMode === 'text' ? '文本识别设置' : '字幕识别设置'}
-          </CardTitle>
-          <CardDescription>
-            {recognitionMode === 'text'
-              ? '调整识别语言、标点补全等文字处理选项'
-              : '调整识别语言、说话人区分等字幕生成选项'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <Label>识别语言</Label>
-            <div className="flex flex-wrap gap-2">
-              {LANGUAGE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setLanguage(option.value)}
-                  disabled={isProcessing}
-                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                    language === option.value
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--oa-ink)] hover:border-[var(--oa-control-hover-border)]'
-                  } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
-                >
-                  {option.label}
-                </button>
-              ))}
+        <button
+          type="button"
+          onClick={() => setShowSettings(!showSettings)}
+          disabled={isProcessing}
+          className={`flex w-full items-center justify-between text-left ${
+            isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          }`}
+        >
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              {recognitionMode === 'text' ? '文本识别设置' : '字幕识别设置'}
+            </CardTitle>
+            <CardDescription>
+              {recognitionMode === 'text'
+                ? '调整识别语言、标点补全等文字处理选项'
+                : '调整识别语言、说话人区分等字幕生成选项'}
+            </CardDescription>
+          </div>
+          <ChevronDown
+            className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 ${
+              showSettings ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        {showSettings ? (
+          <CardContent className="mt-6 space-y-6">
+            <div className="space-y-3">
+              <Label>识别语言</Label>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setLanguage(option.value)}
+                    disabled={isProcessing}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      language === option.value
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--oa-ink)] hover:border-[var(--oa-control-hover-border)]'
+                    } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label>自动标点</Label>
-              <p className="text-xs text-muted-foreground">自动补齐逗号、句号等标点符号</p>
-            </div>
-            <Switch checked={enablePunc} disabled={isProcessing} onToggle={() => setEnablePunc(!enablePunc)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label>数字规整</Label>
-              <p className="text-xs text-muted-foreground">把数字表达整理成更自然的文本形式</p>
-            </div>
-            <Switch checked={enableItn} disabled={isProcessing} onToggle={() => setEnableItn(!enableItn)} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label>语义顺滑</Label>
-              <p className="text-xs text-muted-foreground">让断句和输出内容更贴近自然表达</p>
-            </div>
-            <Switch checked={enableDdc} disabled={isProcessing} onToggle={() => setEnableDdc(!enableDdc)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hotwords">上下文热词 / 术语</Label>
-            <p className="text-xs text-muted-foreground">
-              填入人名、品牌、专业术语等专有名词，识别时会优先匹配，提升准确率。多个词用换行或逗号分隔，最多 200 个。
-            </p>
-            <textarea
-              id="hotwords"
-              value={hotwordsText}
-              onChange={(e) => setHotwordsText(e.target.value)}
-              disabled={isProcessing}
-              rows={3}
-              placeholder="例如：菁门·先锋行，百炼，数字融媒体"
-              className={`w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)] focus:outline-none ${
-                isProcessing ? 'cursor-not-allowed opacity-50' : ''
-              }`}
-            />
-          </div>
-
-          {recognitionMode === 'subtitle' ? (
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label>说话人识别</Label>
-                <p className="text-xs text-muted-foreground">
-                  {isSpeakerSupported
-                    ? '识别不同说话人的发言片段'
-                    : '说话人识别仅支持自动或中文识别'}
-                </p>
+                <Label>自动标点</Label>
+                <p className="text-xs text-muted-foreground">自动补齐逗号、句号等标点符号</p>
               </div>
-              <Switch
-                checked={enableSpeakerInfo}
-                disabled={isProcessing || !isSpeakerSupported}
-                onToggle={() => setEnableSpeakerInfo(!enableSpeakerInfo)}
+              <Switch checked={enablePunc} disabled={isProcessing} onToggle={() => setEnablePunc(!enablePunc)} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label>数字规整</Label>
+                <p className="text-xs text-muted-foreground">把数字表达整理成更自然的文本形式</p>
+              </div>
+              <Switch checked={enableItn} disabled={isProcessing} onToggle={() => setEnableItn(!enableItn)} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label>语义顺滑</Label>
+                <p className="text-xs text-muted-foreground">让断句和输出内容更贴近自然表达</p>
+              </div>
+              <Switch checked={enableDdc} disabled={isProcessing} onToggle={() => setEnableDdc(!enableDdc)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hotwords">上下文热词 / 术语</Label>
+              <p className="text-xs text-muted-foreground">
+                填入人名、品牌、专业术语等专有名词，识别时会优先匹配，提升准确率。多个词用换行或逗号分隔，最多 200 个。
+              </p>
+              <textarea
+                id="hotwords"
+                value={hotwordsText}
+                onChange={(e) => setHotwordsText(e.target.value)}
+                disabled={isProcessing}
+                rows={3}
+                placeholder="例如：菁门·先锋行，百炼，数字融媒体"
+                className={`w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)] focus:outline-none ${
+                  isProcessing ? 'cursor-not-allowed opacity-50' : ''
+                }`}
               />
             </div>
-          ) : null}
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Languages className="h-4 w-4 text-muted-foreground" />
-              <Label>翻译字幕</Label>
+            {recognitionMode === 'subtitle' ? (
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>说话人识别</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {isSpeakerSupported
+                      ? '识别不同说话人的发言片段'
+                      : '说话人识别仅支持自动或中文识别'}
+                  </p>
+                </div>
+                <Switch
+                  checked={enableSpeakerInfo}
+                  disabled={isProcessing || !isSpeakerSupported}
+                  onToggle={() => setEnableSpeakerInfo(!enableSpeakerInfo)}
+                />
+              </div>
+            ) : null}
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Languages className="h-4 w-4 text-muted-foreground" />
+                <Label>翻译字幕</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">识别完成后自动翻译为目标语言，默认不翻译</p>
+              <div className="relative">
+                <select
+                  value={translateLang}
+                  onChange={(e) => setTranslateLang(e.target.value as TranslateLanguage)}
+                  disabled={isProcessing || isTranslating}
+                  className={`w-full appearance-none px-4 py-2.5 pr-10 text-sm transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)] focus:outline-none ${
+                    isProcessing || isTranslating ? 'cursor-not-allowed opacity-50' : ''
+                  }`}
+                >
+                  {TRANSLATE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">识别完成后自动翻译为目标语言，默认不翻译</p>
-            <div className="relative">
-              <select
-                value={translateLang}
-                onChange={(e) => setTranslateLang(e.target.value as TranslateLanguage)}
-                disabled={isProcessing || isTranslating}
-                className={`w-full appearance-none px-4 py-2.5 pr-10 text-sm transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)] focus:outline-none ${
-                  isProcessing || isTranslating ? 'cursor-not-allowed opacity-50' : ''
-                }`}
-              >
-                {TRANSLATE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
-          </div>
-        </CardContent>
+          </CardContent>
+        ) : null}
       </Card>
 
       <Button

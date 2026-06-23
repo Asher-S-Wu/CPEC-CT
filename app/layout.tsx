@@ -42,7 +42,8 @@ const bodyFont = Noto_Sans_SC({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-body",
-  display: "swap"
+  display: "swap",
+  preload: false
 });
 
 export const metadata: Metadata = {
