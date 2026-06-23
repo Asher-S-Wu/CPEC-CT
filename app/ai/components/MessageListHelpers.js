@@ -15,13 +15,14 @@ function getDomainFromUrl(url) {
   try { return new URL(url).hostname.replace("www.", ""); } catch { return ""; }
 }
 
-function WebFavicon({ url, size = 12, className = "" }) {
+function WebFavicon({ url, favicon, size = 12, className = "" }) {
   const [failed, setFailed] = useState(false);
   const domain = getDomainFromUrl(url);
-  if (!domain || failed) return <Search size={size} className={className} />;
+  const faviconUrl = typeof favicon === "string" && /^https?:\/\//i.test(favicon) ? favicon : "";
+  if (!domain || !faviconUrl || failed) return <Search size={size} className={className} />;
   return (
     <img
-      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=${size * 2}`}
+      src={faviconUrl}
       alt=""
       width={size}
       height={size}
@@ -255,7 +256,7 @@ export function Citations({ citations }) {
         <span className="flex -space-x-1.5">
           {previewItems.map((citation, idx) => (
             <span key={idx} className="inline-flex h-4 w-4 items-center justify-center overflow-hidden rounded-full border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)]">
-              <WebFavicon url={citation.url} size={12} />
+              <WebFavicon url={citation.url} favicon={citation.favicon} size={12} />
             </span>
           ))}
         </span>
@@ -299,7 +300,7 @@ export function Citations({ citations }) {
                       className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-2.5 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-red-soft-bg)]"
                       title={citation.title || citation.url}
                     >
-                      <WebFavicon url={citation.url} size={16} className="flex-shrink-0" />
+                      <WebFavicon url={citation.url} favicon={citation.favicon} size={16} className="flex-shrink-0" />
                       <span className="truncate flex-1">
                         {citation.title || domain}
                       </span>
@@ -354,7 +355,7 @@ export function ToolRunPreview({ tool }) {
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-2.5 py-2 text-xs text-[var(--oa-muted)] transition-colors hover:border-[var(--oa-red-soft-border)] hover:text-[var(--oa-blue)]"
             >
-              <WebFavicon url={href} size={14} className="shrink-0" />
+              <WebFavicon url={href} favicon={item.favicon} size={14} className="shrink-0" />
               <span className="truncate flex-1">{title}</span>
               <ExternalLink size={12} className="shrink-0 opacity-60" />
             </a>

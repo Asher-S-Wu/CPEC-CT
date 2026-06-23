@@ -1,5 +1,6 @@
 import {
   scraperRecordsCollection,
+  scraperMigrationsCollection,
   scraperRunArtifactsCollection,
   scraperRunsCollection,
   scraperSourcesCollection
@@ -22,6 +23,7 @@ export async function ensureScraperBootstrap() {
         scraperBootstrapReady = true;
       } catch (error) {
         logError("scraper", "initialize bootstrap", error);
+        throw error;
       } finally {
         if (!scraperBootstrapReady) {
           scraperBootstrapPromise = null;
@@ -34,7 +36,78 @@ export async function ensureScraperBootstrap() {
 }
 
 async function runScraperBootstrap() {
+  await resetScraperDataForTavily();
   await Promise.all([ensureScraperIndexes(), cleanupDeprecatedScraperSources()]);
+}
+
+const TAVILY_RESET_MIGRATION_ID = "2026-06-23-tavily-scraper-reset-v1";
+
+function isDuplicateKeyError(error: unknown) {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && Number((error as { code?: number }).code) === 11000;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resetScraperDataForTavily() {
+  const migrations = await scraperMigrationsCollection();
+  const existing = await migrations.findOne({ _id: TAVILY_RESET_MIGRATION_ID });
+  if (existing?.status === "completed") {
+    return;
+  }
+
+  let ownsMigration = false;
+  if (!existing) {
+    try {
+      await migrations.insertOne({
+        _id: TAVILY_RESET_MIGRATION_ID,
+        status: "running",
+        startedAt: new Date(),
+        completedAt: null
+      });
+      ownsMigration = true;
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  if (!ownsMigration) {
+    while (true) {
+      const state = await migrations.findOne({ _id: TAVILY_RESET_MIGRATION_ID });
+      if (state?.status === "completed") {
+        return;
+      }
+      await sleep(250);
+    }
+  }
+
+  try {
+    const [sources, runs, records, artifacts] = await Promise.all([
+      scraperSourcesCollection(),
+      scraperRunsCollection(),
+      scraperRecordsCollection(),
+      scraperRunArtifactsCollection()
+    ]);
+    await Promise.all([
+      sources.deleteMany({}),
+      runs.deleteMany({}),
+      records.deleteMany({}),
+      artifacts.deleteMany({})
+    ]);
+    await migrations.updateOne(
+      { _id: TAVILY_RESET_MIGRATION_ID },
+      { $set: { status: "completed", completedAt: new Date() } }
+    );
+  } catch (error) {
+    await migrations.deleteOne({ _id: TAVILY_RESET_MIGRATION_ID });
+    throw error;
+  }
 }
 
 async function ensureScraperIndexes() {

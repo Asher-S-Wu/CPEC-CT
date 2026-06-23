@@ -6,12 +6,6 @@ function readRequiredEnv(name: string) {
   return value.trim();
 }
 
-export function getScraperXcrawlEnv() {
-  return {
-    apiKey: readRequiredEnv("XCRAWL_API_KEY")
-  };
-}
-
 export function getScraperModelEnv() {
   return {
     apiKey: readRequiredEnv("ZENMUX_API_KEY"),

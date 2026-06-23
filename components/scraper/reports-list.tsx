@@ -40,11 +40,18 @@ function formatDateLabel(value?: string | null) {
   return formatScraperDateTime(new Date(value));
 }
 
-function formatStatusCode(value: number | null) {
-  if (typeof value !== "number") {
-    return "无状态码";
-  }
-  return `状态码 ${value}`;
+function formatScore(value: number | null) {
+  return typeof value === "number" ? `相关度 ${value.toFixed(3)}` : "无相关度";
+}
+
+function formatRecordKind(value: string) {
+  const labels: Record<string, string> = {
+    tavily_search_result: "搜索结果",
+    tavily_map_result: "站点链接",
+    tavily_extract_result: "网页正文",
+    tavily_crawl_result: "站点采集"
+  };
+  return labels[value] || "采集内容";
 }
 
 export function ReportsList({ initialReports }: { initialReports: ReportItem[] }) {
@@ -134,7 +141,7 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
 
         {reports.map((report) => {
           const status = statusConfig[report.status as keyof typeof statusConfig] ?? statusConfig.queued;
-          const preview = report.finalText || report.records[0]?.summary || report.records[0]?.markdown || report.goal;
+          const preview = report.finalText || report.records[0]?.summary || report.records[0]?.content || report.goal;
           const createdAt = formatDateLabel(report.createdAt);
 
           return (
@@ -279,13 +286,16 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
                 ) : (
                   <div className="space-y-3">
                     {activeReport.records.map((record, index) => {
-                      const excerpt = record.summary || record.markdown;
+                      const excerpt = record.summary || record.content;
                       return (
                         <div key={record.id} className="rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-4 py-4">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
+                                {record.favicon ? (
+                                  <img src={record.favicon} alt="" className="h-4 w-4 rounded-sm" loading="lazy" />
+                                ) : null}
                                 <h4 className="text-sm font-semibold text-foreground">{record.title || "无标题"}</h4>
                               </div>
                               <a
@@ -300,19 +310,19 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-2">
                               <Badge variant="outline" className="font-normal">
-                                {record.kind.replace("_result", "")}
+                                {formatRecordKind(record.kind)}
                               </Badge>
-                              <Badge variant={record.statusCode && record.statusCode >= 400 ? "warning" : "secondary"} className="font-normal">
-                                {formatStatusCode(record.statusCode)}
+                              <Badge variant="secondary" className="font-normal">
+                                {formatScore(record.score)}
                               </Badge>
                             </div>
                           </div>
 
                           <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                            <div>最终链接：<span className="break-all text-foreground/80">{record.finalUrl || record.url}</span></div>
+                            <div>图片数量：<span className="text-foreground/80">{record.images.length}</span></div>
                             <div>采集时间：<span className="text-foreground/80">{formatDateLabel(record.createdAt)}</span></div>
                             <div>发布时间：<span className="text-foreground/80">{formatDateLabel(record.publishedAt)}</span></div>
-                            <div>链接数量：<span className="text-foreground/80">{record.links.length}</span></div>
+                            <div>来源数量：<span className="text-foreground/80">{record.sourceLinks.length}</span></div>
                           </div>
 
                           {record.summary ? (
@@ -322,10 +332,10 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
                             </div>
                           ) : null}
 
-                          {record.markdown ? (
+                          {record.content ? (
                             <div className="mt-3 rounded-[var(--radius-md)] bg-muted/40 px-3 py-3 text-sm leading-6 text-foreground">
                               <div className="mb-1 text-xs font-semibold text-muted-foreground">正文预览</div>
-                              <div className="whitespace-pre-wrap">{shortText(record.markdown, 1800)}</div>
+                              <div className="whitespace-pre-wrap">{shortText(record.content, 1800)}</div>
                             </div>
                           ) : !record.summary && excerpt ? (
                             <div className="mt-3 rounded-[var(--radius-md)] bg-muted/40 px-3 py-3 text-sm leading-6 text-foreground">
@@ -333,20 +343,11 @@ export function ReportsList({ initialReports }: { initialReports: ReportItem[] }
                             </div>
                           ) : null}
 
-                          {record.jsonText ? (
+                          {record.sourceLinks.length > 0 ? (
                             <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-muted/30 px-3 py-3">
-                              <div className="mb-1 text-xs font-semibold text-muted-foreground">JSON 提取</div>
-                              <pre className="custom-scrollbar max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-foreground">
-                                {shortText(record.jsonText, 2400)}
-                              </pre>
-                            </div>
-                          ) : null}
-
-                          {record.links.length > 0 ? (
-                            <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-muted/30 px-3 py-3">
-                              <div className="mb-2 text-xs font-semibold text-muted-foreground">链接列表</div>
+                              <div className="mb-2 text-xs font-semibold text-muted-foreground">来源列表</div>
                               <div className="custom-scrollbar max-h-40 space-y-1 overflow-auto">
-                                {record.links.slice(0, 30).map((link, linkIndex) => (
+                                {record.sourceLinks.slice(0, 30).map((link, linkIndex) => (
                                   <a
                                     key={`${link}-${linkIndex}`}
                                     href={link}

@@ -18,18 +18,10 @@ function formatDateTime(value?: Date | null) {
     : "";
 }
 
-function getPagePayload(record: ScraperRecordDoc) {
-  return {
-    metadata: (record.payload.metadata ?? {}) as Record<string, unknown>,
-    markdown: typeof record.payload.markdown === "string" ? record.payload.markdown : "",
-    html: typeof record.payload.html === "string" ? record.payload.html : "",
-    rawHtml: typeof record.payload.rawHtml === "string" ? record.payload.rawHtml : "",
-    summary: typeof record.payload.summary === "string" ? record.payload.summary : "",
-    extractedJson: record.payload.extractedJson ?? null,
-    links: Array.isArray(record.payload.links) ? record.payload.links : [],
-    finalUrl: typeof record.payload.finalUrl === "string" ? record.payload.finalUrl : "",
-    statusCode: typeof record.payload.statusCode === "number" ? record.payload.statusCode : null
-  };
+function stringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((item) => (typeof item === "string" ? item : safeStringify(item))).filter(Boolean)
+    : [];
 }
 
 export interface ScraperExportContext {
@@ -38,20 +30,13 @@ export interface ScraperExportContext {
 }
 
 export function toScraperExportRow(record: ScraperRecordDoc, context: ScraperExportContext = {}) {
-  const page = getPagePayload(record);
   const sourceId = String(record.sourceId);
   const runId = String(record.runId);
-  const finalUrl =
-    page.finalUrl ||
-    (typeof record.payload.finalUrl === "string" ? record.payload.finalUrl : "") ||
-    record.url;
-  const outputFormats = [
-    page.markdown ? "markdown" : "",
-    page.summary ? "summary" : "",
-    page.links.length > 0 ? "links" : "",
-    page.extractedJson ? "json" : "",
-    page.statusCode !== null ? "status" : ""
-  ].filter(Boolean).join(", ");
+  const content = typeof record.payload.content === "string" ? record.payload.content : "";
+  const summary = typeof record.payload.summary === "string" ? record.payload.summary : "";
+  const favicon = typeof record.payload.favicon === "string" ? record.payload.favicon : "";
+  const images = stringArray(record.payload.images);
+  const sourceLinks = stringArray(record.payload.sourceLinks);
 
   return {
     任务名称: context.sourceNames?.get(sourceId) || "",
@@ -59,16 +44,14 @@ export function toScraperExportRow(record: ScraperRecordDoc, context: ScraperExp
     运行时间: formatDateTime(context.runCreatedAt?.get(runId) || null),
     类型: record.kind,
     标题: record.title,
-    原始链接: record.url,
-    最终链接: finalUrl,
+    来源链接: record.url,
     发布时间: formatDateTime(record.publishedAt ?? null),
-    状态码: page.statusCode ?? "",
-    输出格式: outputFormats,
-    摘要: page.summary,
-    正文Markdown: page.markdown,
-    JSON提取: page.extractedJson ? safeStringify(page.extractedJson) : "",
-    链接列表: page.links.length > 0 ? safeStringify(page.links) : "",
-    指标: safeStringify(record.metrics),
+    相关度: typeof record.metrics.score === "number" ? record.metrics.score : "",
+    摘要: summary,
+    正文: content,
+    图片: images.length > 0 ? safeStringify(images) : "",
+    站点图标: favicon,
+    来源列表: sourceLinks.length > 0 ? safeStringify(sourceLinks) : "",
     创建时间: formatDateTime(record.createdAt),
     更新时间: formatDateTime(record.updatedAt)
   };

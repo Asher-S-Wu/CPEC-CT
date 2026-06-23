@@ -71,7 +71,7 @@ function normalizeFallbackToolTimeline(tools) {
         };
       }
 
-      if (apiName === "crawlSinglePage" || apiName === "crawlMultiPages") {
+      if (apiName === "extract") {
         const firstUrl = typeof tool.arguments?.url === "string" && tool.arguments.url
           ? tool.arguments.url
           : (

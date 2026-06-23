@@ -1,12 +1,10 @@
 import type { ScraperSkillKey } from "@/lib/scraper/types";
 
-export const SCRAPER_SKILLS_REPO_URL = "https://github.com/xcrawl-api/xcrawl-skills";
+export const TAVILY_DOCS_URL = "https://docs.tavily.com";
 
 type ScraperToolDefinition = {
   skillKey: ScraperSkillKey;
   toolName: string;
-  title: string;
-  sourceUrl: string;
   description: string;
   declaration: {
     name: string;
@@ -15,99 +13,85 @@ type ScraperToolDefinition = {
   };
 };
 
-const sharedScrapeProperties = {
+const siteTraversalProperties = {
   url: {
     type: "STRING",
-    description: "要抓取的页面 URL"
+    description: "要分析的站点根 URL"
   },
-  mode: {
+  instructions: {
     type: "STRING",
-    enum: ["sync", "async"],
-    description: "执行模式，默认 sync"
+    description: "用自然语言说明要寻找哪些页面"
   },
-  formats: {
+  max_depth: {
+    type: "NUMBER",
+    minimum: 1,
+    maximum: 5,
+    description: "最大深度，1 到 5"
+  },
+  max_breadth: {
+    type: "NUMBER",
+    minimum: 1,
+    maximum: 500,
+    description: "每层最多跟随的链接数量"
+  },
+  limit: {
+    type: "NUMBER",
+    minimum: 1,
+    description: "最多处理的链接数量"
+  },
+  select_paths: {
     type: "ARRAY",
-    items: {
-      type: "STRING"
-    },
-    description: "输出格式数组，可选 markdown、html、raw_html、links、summary、screenshot、json"
+    items: { type: "STRING" },
+    description: "只选择符合这些正则的路径"
   },
-  json_prompt: {
-    type: "STRING",
-    description: "当需要结构化提取时使用的 JSON 提示词"
-  },
-  json_schema_text: {
-    type: "STRING",
-    description: "JSON Schema 的字符串形式"
-  },
-  device: {
-    type: "STRING",
-    enum: ["desktop", "mobile"],
-    description: "设备类型"
-  },
-  locale: {
-    type: "STRING",
-    description: "请求 locale"
-  },
-  wait_until: {
-    type: "STRING",
-    enum: ["load", "domcontentloaded", "networkidle"],
-    description: "页面等待策略"
-  },
-  proxy_location: {
-    type: "STRING",
-    description: "代理国家或地区代码，比如 US、JP、SG"
-  },
-  sticky_session: {
-    type: "STRING",
-    description: "XCrawl sticky session"
+  exclude_paths: {
+    type: "ARRAY",
+    items: { type: "STRING" },
+    description: "排除符合这些正则的路径"
   }
 };
 
 const SKILL_DEFINITIONS: ScraperToolDefinition[] = [
   {
-    skillKey: "xcrawl",
-    toolName: "xcrawl",
-    title: "XCrawl 默认入口",
-    sourceUrl: `${SCRAPER_SKILLS_REPO_URL}/blob/main/skills/xcrawl/SKILL.md`,
-    description: "默认单页抽取入口，适合明确 URL 的页面抓取请求。",
+    skillKey: "tavily-search",
+    toolName: "tavily_search",
+    description: "按关键词搜索实时网页并返回相关正文片段、来源链接、图片和站点图标。",
     declaration: {
-      name: "xcrawl",
-      description: "XCrawl 默认技能。适合已经有明确 URL 的页面抓取，底层走 XCrawl Scrape。",
-      parameters: {
-        type: "OBJECT",
-        properties: sharedScrapeProperties,
-        required: ["url"]
-      }
-    }
-  },
-  {
-    skillKey: "xcrawl-search",
-    toolName: "xcrawl_search",
-    title: "XCrawl Search",
-    sourceUrl: `${SCRAPER_SKILLS_REPO_URL}/blob/main/skills/xcrawl-search/SKILL.md`,
-    description: "关键词发现技能，适合先找候选链接。",
-    declaration: {
-      name: "xcrawl_search",
-      description: "XCrawl Search 技能。按 query、location、language 搜索候选链接。",
+      name: "tavily_search",
+      description: "使用 Tavily Search 发现未知来源。优先用于实时信息、新闻和候选网页检索。",
       parameters: {
         type: "OBJECT",
         properties: {
-          query: {
+          query: { type: "STRING", description: "搜索词" },
+          topic: {
             type: "STRING",
-            description: "搜索词"
+            enum: ["general", "news", "finance"],
+            description: "搜索主题"
           },
-          location: {
+          time_range: {
             type: "STRING",
-            description: "搜索地区，比如 CN、US 或城市名"
+            enum: ["day", "week", "month", "year"],
+            description: "时间范围"
           },
-          language: {
-            type: "STRING",
-            description: "语言代码，比如 zh、en"
-          },
-          limit: {
+          max_results: {
             type: "NUMBER",
-            description: "结果上限，1 到 100"
+            minimum: 1,
+            maximum: 20,
+            description: "结果数量，最多 20"
+          },
+          include_domains: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+            description: "只搜索这些域名"
+          },
+          exclude_domains: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+            description: "排除这些域名"
+          },
+          country: {
+            type: "STRING",
+            description: "优先国家，使用英文国家名"
           }
         },
         required: ["query"]
@@ -115,134 +99,53 @@ const SKILL_DEFINITIONS: ScraperToolDefinition[] = [
     }
   },
   {
-    skillKey: "xcrawl-map",
-    toolName: "xcrawl_map",
-    title: "XCrawl Map",
-    sourceUrl: `${SCRAPER_SKILLS_REPO_URL}/blob/main/skills/xcrawl-map/SKILL.md`,
-    description: "站点 URL 发现技能，适合摸清网站结构。",
+    skillKey: "tavily-extract",
+    toolName: "tavily_extract",
+    description: "读取一个或多个已知 URL，返回清洗后的 Markdown 正文、图片和站点图标。",
     declaration: {
-      name: "xcrawl_map",
-      description: "XCrawl Map 技能。对站点做 URL 发现和范围规划。",
+      name: "tavily_extract",
+      description: "使用 Tavily Extract 读取已知网页。适合从搜索结果中选择权威页面后获取正文。",
       parameters: {
         type: "OBJECT",
         properties: {
-          url: {
+          urls: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+            description: "要读取的 URL，最多一次传入 5 个"
+          },
+          query: {
             type: "STRING",
-            description: "站点 URL"
-          },
-          filter: {
-            type: "STRING",
-            description: "只保留匹配这个正则的 URL"
-          },
-          limit: {
-            type: "NUMBER",
-            description: "URL 上限"
-          },
-          include_subdomains: {
-            type: "BOOLEAN",
-            description: "是否包含子域名"
-          },
-          ignore_query_parameters: {
-            type: "BOOLEAN",
-            description: "是否忽略 query 参数"
+            description: "可选的阅读目标，用于筛选最相关的正文片段"
           }
         },
+        required: ["urls"]
+      }
+    }
+  },
+  {
+    skillKey: "tavily-map",
+    toolName: "tavily_map",
+    description: "发现站点结构和 URL，不读取完整正文。",
+    declaration: {
+      name: "tavily_map",
+      description: "使用 Tavily Map 摸清网站结构，为后续定向读取或批量采集选择范围。",
+      parameters: {
+        type: "OBJECT",
+        properties: siteTraversalProperties,
         required: ["url"]
       }
     }
   },
   {
-    skillKey: "xcrawl-scrape",
-    toolName: "xcrawl_scrape",
-    title: "XCrawl Scrape",
-    sourceUrl: `${SCRAPER_SKILLS_REPO_URL}/blob/main/skills/xcrawl-scrape/SKILL.md`,
-    description: "单页抓取技能，适合正文、摘要、JSON 提取。",
+    skillKey: "tavily-crawl",
+    toolName: "tavily_crawl",
+    description: "在指定站点内批量发现并读取多个网页。",
     declaration: {
-      name: "xcrawl_scrape",
-      description: "XCrawl Scrape 技能。适合抓单页正文、摘要、JSON、截图等。",
+      name: "tavily_crawl",
+      description: "使用 Tavily Crawl 批量采集同一站点内的多个页面。只有目标明确要求站点级采集时才使用。",
       parameters: {
         type: "OBJECT",
-        properties: sharedScrapeProperties,
-        required: ["url"]
-      }
-    }
-  },
-  {
-    skillKey: "xcrawl-crawl",
-    toolName: "xcrawl_crawl",
-    title: "XCrawl Crawl",
-    sourceUrl: `${SCRAPER_SKILLS_REPO_URL}/blob/main/skills/xcrawl-crawl/SKILL.md`,
-    description: "站点批量抓取技能，适合大范围爬取。",
-    declaration: {
-      name: "xcrawl_crawl",
-      description: "XCrawl Crawl 技能。对站点做批量抓取，通常会返回异步 crawl_id。",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          url: {
-            type: "STRING",
-            description: "起始 URL"
-          },
-          limit: {
-            type: "NUMBER",
-            description: "抓取页数上限"
-          },
-          max_depth: {
-            type: "NUMBER",
-            description: "最大深度"
-          },
-          include: {
-            type: "ARRAY",
-            items: {
-              type: "STRING"
-            },
-            description: "只包含这些正则"
-          },
-          exclude: {
-            type: "ARRAY",
-            items: {
-              type: "STRING"
-            },
-            description: "排除这些正则"
-          },
-          formats: {
-            type: "ARRAY",
-            items: {
-              type: "STRING"
-            },
-            description: "输出格式数组"
-          },
-          json_prompt: {
-            type: "STRING",
-            description: "结构化提取提示词"
-          },
-          json_schema_text: {
-            type: "STRING",
-            description: "JSON Schema 的字符串形式"
-          },
-          device: {
-            type: "STRING",
-            enum: ["desktop", "mobile"],
-            description: "设备类型"
-          },
-          locale: {
-            type: "STRING",
-            description: "请求 locale"
-          },
-          wait_until: {
-            type: "STRING",
-            enum: ["load", "domcontentloaded", "networkidle"],
-            description: "页面等待策略"
-          },
-          proxy_location: {
-            type: "STRING",
-            description: "代理国家或地区代码"
-          },
-          sticky_session: {
-            type: "STRING",
-            description: "XCrawl sticky session"
-          }
-        },
+        properties: siteTraversalProperties,
         required: ["url"]
       }
     }
@@ -250,14 +153,14 @@ const SKILL_DEFINITIONS: ScraperToolDefinition[] = [
 ];
 
 export function getScraperToolDeclarations(enabledSkills?: ScraperSkillKey[]) {
-  const allowed = new Set(enabledSkills && enabledSkills.length > 0 ? enabledSkills : SKILL_DEFINITIONS.map((item) => item.skillKey));
+  const allowed = new Set(enabledSkills?.length ? enabledSkills : SKILL_DEFINITIONS.map((item) => item.skillKey));
   return SKILL_DEFINITIONS.filter((item) => allowed.has(item.skillKey)).map((item) => item.declaration);
 }
 
 export function getScraperSkillPromptLines(enabledSkills?: ScraperSkillKey[]) {
-  const allowed = new Set(enabledSkills && enabledSkills.length > 0 ? enabledSkills : SKILL_DEFINITIONS.map((item) => item.skillKey));
+  const allowed = new Set(enabledSkills?.length ? enabledSkills : SKILL_DEFINITIONS.map((item) => item.skillKey));
   return SKILL_DEFINITIONS.filter((item) => allowed.has(item.skillKey)).map(
-    (item) => `- ${item.toolName}: ${item.description}（来源：${item.sourceUrl}）`
+    (item) => `- ${item.toolName}: ${item.description}（文档：${TAVILY_DOCS_URL}）`
   );
 }
 

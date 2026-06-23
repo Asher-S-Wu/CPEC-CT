@@ -2,6 +2,13 @@ import type { Collection } from "mongodb";
 import { getDb } from "@/lib/db";
 import type { ScraperRecordDoc, ScraperRunArtifactDoc, ScraperRunDoc, ScraperSourceDoc } from "@/lib/scraper/types";
 
+export interface ScraperMigrationDoc {
+  _id: string;
+  status: "running" | "completed";
+  startedAt: Date;
+  completedAt?: Date | null;
+}
+
 export async function scraperSourcesCollection(): Promise<Collection<ScraperSourceDoc>> {
   return (await getDb()).collection<ScraperSourceDoc>("scraper_sources");
 }
@@ -16,4 +23,8 @@ export async function scraperRunArtifactsCollection(): Promise<Collection<Scrape
 
 export async function scraperRecordsCollection(): Promise<Collection<ScraperRecordDoc>> {
   return (await getDb()).collection<ScraperRecordDoc>("scraper_records");
+}
+
+export async function scraperMigrationsCollection(): Promise<Collection<ScraperMigrationDoc>> {
+  return (await getDb()).collection<ScraperMigrationDoc>("app_migrations");
 }

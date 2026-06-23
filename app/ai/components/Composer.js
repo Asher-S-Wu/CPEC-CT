@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
   FileText,
+  Globe2,
   Paperclip,
   Square,
   X,
@@ -387,6 +388,21 @@ export default function Composer({
             updateSystemPrompt={updateSystemPrompt}
             deleteSystemPrompt={deleteSystemPrompt}
           />
+          <button
+            type="button"
+            onClick={() => setWebSearch?.((current) => ({
+              ...(current && typeof current === "object" ? current : {}),
+              enabled: !current?.enabled,
+            }))}
+            className={`ai-control-chip inline-flex h-9 items-center gap-2 rounded-full px-3 text-xs font-medium ${
+              webSearch?.enabled ? "border-[var(--oa-blue)] text-[var(--oa-blue)]" : ""
+            }`}
+            aria-pressed={Boolean(webSearch?.enabled)}
+            title={webSearch?.enabled ? "已开启 Tavily 联网" : "开启 Tavily 联网"}
+          >
+            <Globe2 size={14} />
+            {webSearch?.enabled ? "联网已开" : "联网"}
+          </button>
         </div>
 
         <div className="px-4 py-3 md:px-5 md:py-4">

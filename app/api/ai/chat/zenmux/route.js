@@ -26,6 +26,7 @@ import { prepareDocumentAttachmentMapByUrls } from "@/lib/ai/server/files/servic
 import { buildDirectChatSystemPrompt } from "@/lib/ai/server/chat/systemPromptBuilder";
 import {
   parseSystemPrompt,
+  parseWebSearchConfig,
 } from "@/lib/ai/server/chat/requestConfig";
 import {
   buildChatCompletionsRequest,
@@ -33,8 +34,15 @@ import {
   getChatCompletionChunkDelta,
   getChatCompletionChunkThoughtDelta,
   getChatCompletionCompletedUsage,
+  getChatCompletionMessage,
+  getChatCompletionOutputText,
+  getChatCompletionToolCalls,
   normalizeOpenAIError,
 } from "@/lib/ai/server/zenmux/openai";
+import {
+  executeTavilyChatTool,
+  TAVILY_CHAT_TOOLS,
+} from "@/lib/ai/server/chat/tavilyTools";
 import {
   buildChatMessagesFromHistory,
   buildCurrentUserMessage,
@@ -193,6 +201,7 @@ export async function POST(req) {
 
     const userSystemPrompt = parseSystemPrompt(config?.systemPrompt);
     const systemPromptSuffix = parseSystemPrompt(config?.systemPromptSuffix);
+    const webSearchConfig = parseWebSearchConfig(config?.webSearch);
 
     if (user && !currentConversationId) {
       const titleSource = isNonEmptyString(prompt) ? prompt : (currentAttachments[0]?.name || (config?.images?.length ? "图片对话" : "New Chat"));
@@ -286,6 +295,9 @@ export async function POST(req) {
         let finalUsage = null;
         let finalCompletionId = "";
         let finalMessagePersisted = false;
+        let finalCitations = [];
+        let finalTools = [];
+        let searchContextTokens = 0;
 
         const rollbackCurrentTurn = async () => {
           if (finalMessagePersisted) return;
@@ -315,43 +327,184 @@ export async function POST(req) {
           };
 
           const systemPrompt = await buildDirectChatSystemPrompt({
-            userSystemPrompt, systemPromptSuffix, enableWebSearch: false, searchContextSection: "",
+            userSystemPrompt,
+            systemPromptSuffix,
+            enableWebSearch: webSearchConfig.enabled,
+            searchContextSection: "",
           });
 
-          const stream = await zenMuxClient.chat.completions.create(
-            buildChatCompletionsRequest({
-              model: apiModel,
-              messages: chatMessages,
-              system: systemPrompt,
-              stream: true,
-              reasoningEffort: "high",
-            }),
-            { signal: req?.signal }
-          );
+          let responseMessages = chatMessages;
+          let terminalResponse = null;
 
-          for await (const chunk of stream) {
-            if (clientAborted) break;
+          if (webSearchConfig.enabled) {
+            responseMessages = [...chatMessages];
+            let toolCallsUsed = 0;
 
-            if (typeof chunk?.id === "string" && chunk.id.trim()) {
-              finalCompletionId = chunk.id.trim();
+            while (toolCallsUsed < 5 && !terminalResponse) {
+              const toolResponse = await zenMuxClient.chat.completions.create(
+                buildChatCompletionsRequest({
+                  model: apiModel,
+                  messages: responseMessages,
+                  system: systemPrompt,
+                  stream: false,
+                  reasoningEffort: "high",
+                  tools: TAVILY_CHAT_TOOLS,
+                  toolChoice: "auto",
+                }),
+                { signal: req?.signal }
+              );
+
+              if (typeof toolResponse?.id === "string" && toolResponse.id.trim()) {
+                finalCompletionId = toolResponse.id.trim();
+              }
+              const toolUsage = getChatCompletionCompletedUsage(toolResponse);
+              if (toolUsage) finalUsage = toolUsage;
+
+              const assistantMessage = getChatCompletionMessage(toolResponse);
+              const calls = getChatCompletionToolCalls(toolResponse);
+              const reasoningText = typeof assistantMessage?.reasoning === "string"
+                ? assistantMessage.reasoning
+                : typeof assistantMessage?.reasoning_content === "string"
+                  ? assistantMessage.reasoning_content
+                  : "";
+              if (reasoningText) {
+                fullThought += reasoningText;
+                sendEvent({ type: "thought", content: reasoningText });
+              }
+
+              if (calls.length === 0) {
+                terminalResponse = toolResponse;
+                break;
+              }
+
+              responseMessages.push({
+                role: "assistant",
+                content: assistantMessage?.content || "",
+                tool_calls: calls,
+                ...(typeof assistantMessage?.reasoning === "string"
+                  ? { reasoning: assistantMessage.reasoning }
+                  : {}),
+                ...(Array.isArray(assistantMessage?.reasoning_details)
+                  ? { reasoning_details: assistantMessage.reasoning_details }
+                  : {}),
+              });
+
+              for (const call of calls) {
+                if (toolCallsUsed >= 5) {
+                  responseMessages.push({
+                    role: "tool",
+                    tool_call_id: call.id,
+                    name: call?.function?.name || "",
+                    content: JSON.stringify({ error: "联网工具最多调用五次" }),
+                  });
+                  continue;
+                }
+
+                toolCallsUsed += 1;
+                const round = toolCallsUsed;
+                let callArgs = {};
+                try {
+                  callArgs = JSON.parse(call?.function?.arguments || "{}");
+                } catch {
+                  callArgs = {};
+                }
+                const isSearch = call?.function?.name === "tavily_search";
+                const query = typeof callArgs?.query === "string" ? callArgs.query.trim() : "";
+                const urls = Array.isArray(callArgs?.urls)
+                  ? callArgs.urls.map((item) => String(item).trim()).filter(Boolean)
+                  : [];
+
+                sendEvent(isSearch
+                  ? { type: "search_start", query, round, toolId: call.id }
+                  : { type: "page_fetch_start", url: urls[0] || "", round, toolId: call.id });
+
+                let execution;
+                try {
+                  execution = await executeTavilyChatTool(call, { signal: req?.signal });
+                } catch (toolError) {
+                  const message = toolError instanceof Error ? toolError.message : "Tavily 联网失败";
+                  sendEvent(isSearch
+                    ? { type: "search_error", query, round, message, toolId: call.id }
+                    : { type: "page_fetch_error", url: urls[0] || "", round, message, toolId: call.id });
+                  throw toolError;
+                }
+
+                const publicResults = execution.results.map((item) => ({
+                  title: item.title,
+                  url: item.url,
+                  content: item.content || item.raw_content || "",
+                  score: item.score ?? null,
+                  favicon: item.favicon || "",
+                }));
+                sendEvent(execution.apiName === "search"
+                  ? { type: "search_result", query: execution.args.query, round, results: publicResults, toolId: call.id }
+                  : { type: "page_fetch_result", url: execution.args.urls?.[0] || "", round, results: publicResults, toolId: call.id });
+
+                const knownCitationUrls = new Set(finalCitations.map((item) => item.url));
+                for (const citation of execution.citations) {
+                  if (!knownCitationUrls.has(citation.url)) {
+                    knownCitationUrls.add(citation.url);
+                    finalCitations.push(citation);
+                  }
+                }
+                finalTools.push(execution.tool);
+                searchContextTokens += Math.ceil(JSON.stringify(execution.modelResult).length / 4);
+                sendEvent({ type: "citations", citations: finalCitations });
+                sendEvent({ type: "tool_result", tool: execution.tool });
+
+                responseMessages.push({
+                  role: "tool",
+                  tool_call_id: call.id,
+                  name: call?.function?.name || "",
+                  content: JSON.stringify(execution.modelResult),
+                });
+              }
             }
+          }
 
-            const delta = getChatCompletionChunkDelta(chunk);
-            const textDelta = typeof delta?.content === "string" ? delta.content : "";
-            if (textDelta) {
-              fullText += textDelta;
-              sendEvent({ type: "text", content: textDelta });
+          if (terminalResponse) {
+            const answer = getChatCompletionOutputText(terminalResponse);
+            if (!answer) {
+              throw new Error("模型完成联网后没有返回答案");
             }
+            fullText += answer;
+            sendEvent({ type: "text", content: answer });
+          } else {
+            const stream = await zenMuxClient.chat.completions.create(
+              buildChatCompletionsRequest({
+                model: apiModel,
+                messages: responseMessages,
+                system: systemPrompt,
+                stream: true,
+                reasoningEffort: "high",
+              }),
+              { signal: req?.signal }
+            );
 
-            const thoughtDelta = getChatCompletionChunkThoughtDelta(chunk);
-            if (thoughtDelta) {
-              fullThought += thoughtDelta;
-              sendEvent({ type: "thought", content: thoughtDelta });
-            }
+            for await (const chunk of stream) {
+              if (clientAborted) break;
 
-            const usage = getChatCompletionCompletedUsage(chunk);
-            if (usage) {
-              finalUsage = usage;
+              if (typeof chunk?.id === "string" && chunk.id.trim()) {
+                finalCompletionId = chunk.id.trim();
+              }
+
+              const delta = getChatCompletionChunkDelta(chunk);
+              const textDelta = typeof delta?.content === "string" ? delta.content : "";
+              if (textDelta) {
+                fullText += textDelta;
+                sendEvent({ type: "text", content: textDelta });
+              }
+
+              const thoughtDelta = getChatCompletionChunkThoughtDelta(chunk);
+              if (thoughtDelta) {
+                fullThought += thoughtDelta;
+                sendEvent({ type: "thought", content: thoughtDelta });
+              }
+
+              const usage = getChatCompletionCompletedUsage(chunk);
+              if (usage) {
+                finalUsage = usage;
+              }
             }
           }
 
@@ -364,6 +517,9 @@ export async function POST(req) {
           fullText = fullText.trim();
           fullThought = fullThought.trim();
 
+          if (searchContextTokens > 0) {
+            sendEvent({ type: "search_context_tokens", tokens: searchContextTokens });
+          }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
           if (user && currentConversationId) {
@@ -378,6 +534,9 @@ export async function POST(req) {
               thought: fullThought,
               type: "text",
               parts: [{ text: fullText }],
+              ...(finalCitations.length > 0 ? { citations: finalCitations } : {}),
+              ...(finalTools.length > 0 ? { tools: finalTools } : {}),
+              ...(searchContextTokens > 0 ? { searchContextTokens } : {}),
               ...(providerState ? { providerState } : {}),
             };
             const persistedConversation = await Conversation.findOneAndUpdate(

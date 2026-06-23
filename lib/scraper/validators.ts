@@ -9,8 +9,7 @@ export const scraperAgentConfigSchema = z.object({
   enabledSkills: z.array(scraperSkillSchema).optional(),
   defaultInputs: z.record(z.string(), z.unknown()).optional(),
   constraints: z.object({
-    maxToolCalls: z.number().int().min(1).max(100).optional(),
-    allowAsync: z.boolean().optional()
+    maxToolCalls: z.number().int().min(1).max(100).optional()
   }).optional()
 }).passthrough();
 

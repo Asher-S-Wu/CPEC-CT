@@ -2,17 +2,19 @@ import type { ObjectId } from "mongodb";
 import type { Role, UserDoc } from "@/types/domain";
 
 export const SCRAPER_SOURCE_KINDS = ["agent"] as const;
-export const SCRAPER_RECORD_KINDS = ["search_result", "serp_result", "map_result", "scrape_result", "crawl_result"] as const;
-export const SCRAPER_OUTPUT_FORMATS = ["markdown", "html", "raw_html", "links", "summary", "screenshot", "json"] as const;
-export const SCRAPER_DELIVERY_MODES = ["sync", "async"] as const;
-export const SCRAPER_SKILL_KEYS = ["xcrawl", "xcrawl-search", "xcrawl-map", "xcrawl-scrape", "xcrawl-crawl"] as const;
+export const SCRAPER_RECORD_KINDS = [
+  "tavily_search_result",
+  "tavily_map_result",
+  "tavily_extract_result",
+  "tavily_crawl_result"
+] as const;
+export const SCRAPER_SKILL_KEYS = ["tavily-search", "tavily-extract", "tavily-map", "tavily-crawl"] as const;
 
 export const SCRAPER_RUN_STATUSES = ["queued", "running", "completed", "failed"] as const;
 export const SCRAPER_RUN_TRIGGERS = ["manual"] as const;
 
 export type ScraperSourceKind = (typeof SCRAPER_SOURCE_KINDS)[number];
 export type ScraperRecordKind = (typeof SCRAPER_RECORD_KINDS)[number];
-export type ScraperDeliveryMode = (typeof SCRAPER_DELIVERY_MODES)[number];
 export type ScraperSkillKey = (typeof SCRAPER_SKILL_KEYS)[number];
 export type ScraperRunStatus = (typeof SCRAPER_RUN_STATUSES)[number];
 export type ScraperRunTrigger = (typeof SCRAPER_RUN_TRIGGERS)[number];
@@ -112,11 +114,10 @@ export function isScraperAdminRole(role: Role) {
 
 export function formatScraperSkillKey(kind: ScraperSkillKey) {
   const labels: Record<ScraperSkillKey, string> = {
-    xcrawl: "XCrawl 默认入口",
-    "xcrawl-search": "XCrawl Search",
-    "xcrawl-map": "XCrawl Map",
-    "xcrawl-crawl": "XCrawl Crawl",
-    "xcrawl-scrape": "XCrawl Scrape"
+    "tavily-search": "Tavily Search",
+    "tavily-extract": "Tavily Extract",
+    "tavily-map": "Tavily Map",
+    "tavily-crawl": "Tavily Crawl"
   };
 
   return labels[kind] ?? kind;

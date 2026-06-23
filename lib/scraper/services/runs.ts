@@ -15,12 +15,12 @@ export interface ScraperRunReportRecord {
   kind: string;
   title: string;
   url: string;
-  finalUrl: string;
   summary: string;
-  markdown: string;
-  jsonText: string;
-  links: string[];
-  statusCode: number | null;
+  content: string;
+  images: unknown[];
+  favicon: string;
+  sourceLinks: string[];
+  score: number | null;
   publishedAt: Date | null;
   createdAt: Date;
 }
@@ -39,15 +39,7 @@ export interface ScraperRunReportItem {
   records: ScraperRunReportRecord[];
 }
 
-function safeStringify(value: unknown) {
-  try {
-    return JSON.stringify(value) || "";
-  } catch {
-    return "";
-  }
-}
-
-function normalizeRecordLinks(value: unknown) {
+function normalizeStringArray(value: unknown) {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -56,12 +48,6 @@ function normalizeRecordLinks(value: unknown) {
     .map((item) => {
       if (typeof item === "string") {
         return item;
-      }
-      if (item && typeof item === "object" && typeof (item as { url?: unknown }).url === "string") {
-        return (item as { url: string }).url;
-      }
-      if (item && typeof item === "object" && typeof (item as { href?: unknown }).href === "string") {
-        return (item as { href: string }).href;
       }
       return "";
     })
@@ -286,12 +272,12 @@ export async function listScraperRunReports(actor: ScraperActor, limit = 50, fil
         kind: rec.kind,
         title: rec.title,
         url: rec.url,
-        finalUrl: typeof rec.payload?.finalUrl === "string" ? rec.payload.finalUrl : rec.url,
         summary: typeof rec.payload?.summary === "string" ? rec.payload.summary : "",
-        markdown: typeof rec.payload?.markdown === "string" ? rec.payload.markdown : "",
-        jsonText: rec.payload?.extractedJson ? safeStringify(rec.payload.extractedJson) : "",
-        links: normalizeRecordLinks(rec.payload?.links),
-        statusCode: typeof rec.payload?.statusCode === "number" ? rec.payload.statusCode : null,
+        content: typeof rec.payload?.content === "string" ? rec.payload.content : "",
+        images: Array.isArray(rec.payload?.images) ? rec.payload.images : [],
+        favicon: typeof rec.payload?.favicon === "string" ? rec.payload.favicon : "",
+        sourceLinks: normalizeStringArray(rec.payload?.sourceLinks),
+        score: typeof rec.metrics?.score === "number" ? rec.metrics.score : null,
         publishedAt: rec.publishedAt ?? null,
         createdAt: rec.createdAt
       }))

@@ -1,5 +1,4 @@
 import {
-  buildPagePayload,
   normalizeUrlArray,
   pickBestTitle,
   pickBestUrl
@@ -7,9 +6,8 @@ import {
 import { getScraperModelEnv } from "@/lib/scraper/env";
 import { appendFunctionResults, callZenMuxAgent, extractZenMuxFunctionCalls, extractZenMuxText, extractModelContent } from "@/lib/scraper/agent/zenmux";
 import { getScraperSkillKeyByToolName, getScraperSkillPromptLines, getScraperToolDeclarations } from "@/lib/scraper/skills/registry";
-import { runCrawl, runMap, runScrape, runSearch } from "@/lib/scraper/source-runners/xcrawl";
-import { formatScraperSkillKey, SCRAPER_OUTPUT_FORMATS, SCRAPER_SKILL_KEYS, type ScraperRunDoc, type ScraperSkillKey, type ScraperSourceDoc } from "@/lib/scraper/types";
-import { safeJsonParse } from "@/lib/scraper/utils";
+import { runCrawl, runExtract, runMap, runSearch } from "@/lib/scraper/source-runners/tavily";
+import { formatScraperSkillKey, SCRAPER_SKILL_KEYS, type ScraperRunDoc, type ScraperSkillKey, type ScraperSourceDoc } from "@/lib/scraper/types";
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -19,26 +17,8 @@ function numberValue(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function booleanValue(value: unknown, fallback: boolean) {
-  return typeof value === "boolean" ? value : fallback;
-}
-
 function stringArray(value: unknown) {
   return Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : [];
-}
-
-function parseJsonText(value: unknown) {
-  const raw = text(value);
-  if (!raw) {
-    return undefined;
-  }
-
-  const parsed = safeJsonParse<Record<string, unknown> | null>(raw, null);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("JSON Schema 字符串不是合法对象");
-  }
-
-  return parsed;
 }
 
 function normalizeEnabledSkills(config: Record<string, unknown>) {
@@ -57,8 +37,7 @@ function normalizeConstraints(config: Record<string, unknown>) {
       : {};
 
   return {
-    maxToolCalls: numberValue(raw.maxToolCalls, 50),
-    allowAsync: booleanValue(raw.allowAsync, true)
+    maxToolCalls: numberValue(raw.maxToolCalls, 50)
   };
 }
 
@@ -80,17 +59,15 @@ function buildAgentPrompt(source: ScraperSourceDoc) {
     enabledSkills,
     constraints,
     prompt: [
-      "你是 CPEC 的网页采集代理，需要通过 XCrawl Skills 完成网页发现、抓取和入库。",
-      "你必须严格按技能边界选工具，不要把 Search、Map、Scrape、Crawl 混着解释。",
+      "你是 CPEC 的网页采集代理，需要通过 Tavily 完成网页发现、读取和入库。",
+      "你必须严格按技能边界选工具，不要把 Search、Extract、Map、Crawl 混着使用。",
       "技能路由规则：",
       ...getScraperSkillPromptLines(enabledSkills),
       "执行规则：",
-      constraints.allowAsync
-        ? "- 允许使用 crawl 或 async scrape；系统会自动轮询 XCrawl 结果，不需要额外回调配置。"
-        : "- 本次禁止使用 crawl 或 async scrape，只能使用同步 search / map / scrape。",
       `- 本次最大工具调用步数：${constraints.maxToolCalls}。系统会在每次请求时告知你剩余步数。`,
       "- 当剩余步数 ≤ 2 时，你应当停止调用新工具，立即根据已获取的结果整理并输出最终中文结论。",
       "- 如果已经获得足够结果，就停止继续调工具，直接输出中文结论。",
+      "- 已知 URL 时使用 Extract；未知来源时先 Search；需要了解站点结构时使用 Map。",
       "- 除非目标明确要求大范围站点批量抓取，否则不要动用 crawl。",
       "",
       `任务名称：${source.name}`,
@@ -115,32 +92,26 @@ function summarizeDiscoveryResponse(payload: any) {
     .slice(0, 6)
     .map((item: any) => ({
       title: typeof item === "string" ? item : pickBestTitle(item, ""),
-      url: typeof item === "string" ? item : pickBestUrl(item)
+      url: typeof item === "string" ? item : pickBestUrl(item),
+      content: typeof item?.content === "string" ? item.content.slice(0, 800) : "",
+      score: typeof item?.score === "number" ? item.score : null
     }))
     .filter((item) => item.url);
 }
 
-function summarizeScrapeResponse(payload: any) {
-  const page = buildPagePayload(payload?.data || {});
-  const outputFormats = [
-    page.markdown ? "markdown" : "",
-    page.html ? "html" : "",
-    page.rawHtml ? "raw_html" : "",
-    page.summary ? "summary" : "",
-    page.links.length > 0 ? "links" : "",
-    page.extractedJson ? "json" : "",
-    page.screenshot ? "screenshot" : ""
-  ].filter(Boolean);
-
-  return {
-    final_url: payload?.url || page.finalUrl || "",
-    title: typeof page.metadata.title === "string" ? page.metadata.title : "",
-    summary: page.summary || "",
-    json: page.extractedJson || null,
-    status_code: page.statusCode,
-    output_formats: outputFormats,
-    markdown_preview: page.markdown ? String(page.markdown).slice(0, 1200) : ""
-  };
+function summarizePageResponse(payload: any) {
+  return normalizeUrlArray(payload)
+    .slice(0, 6)
+    .map((item: any) => ({
+      title: pickBestTitle(item, pickBestUrl(item)),
+      url: pickBestUrl(item),
+      content: typeof item?.raw_content === "string"
+        ? item.raw_content.slice(0, 1200)
+        : typeof item?.content === "string"
+          ? item.content.slice(0, 1200)
+          : ""
+    }))
+    .filter((item) => item.url);
 }
 
 async function executeAgentTool(input: {
@@ -148,33 +119,24 @@ async function executeAgentTool(input: {
   run: ScraperRunDoc;
   toolName: string;
   args: Record<string, unknown>;
-  allowAsync: boolean;
 }) {
   const skillKey = getScraperSkillKeyByToolName(input.toolName);
   if (!skillKey) {
     throw new Error("采集过程中遇到无法识别的操作，请稍后重试");
   }
 
-  if ((input.toolName === "xcrawl_crawl" || text(input.args.mode) === "async") && !input.allowAsync) {
-    return {
-      skillKey,
-      requestPayload: input.args,
-      responsePayload: { blocked: true },
-      modelResult: {
-        ok: false,
-        error: "当前任务限制禁止 crawl 或 async scrape，请改用同步 search / map / scrape。"
-      }
-    };
-  }
-
   switch (input.toolName) {
-    case "xcrawl_search": {
+    case "tavily_search": {
       const requestConfig = {
         query: text(input.args.query),
-        location: text(input.args.location) || "CN",
-        language: text(input.args.language) || "zh",
-        limit: numberValue(input.args.limit, 10),
-        advancedParams: {}
+        searchDepth: "advanced",
+        chunksPerSource: 3,
+        maxResults: numberValue(input.args.max_results, 5),
+        topic: text(input.args.topic) || "general",
+        timeRange: text(input.args.time_range),
+        includeDomains: stringArray(input.args.include_domains),
+        excludeDomains: stringArray(input.args.exclude_domains),
+        country: text(input.args.country)
       };
       const result = await runSearch(buildToolSource(input.source, requestConfig), input.run);
       return {
@@ -189,14 +151,34 @@ async function executeAgentTool(input: {
         }
       };
     }
-    case "xcrawl_map": {
+    case "tavily_extract": {
+      const requestConfig = {
+        urls: stringArray(input.args.urls).slice(0, 5),
+        query: text(input.args.query),
+        chunksPerSource: 3
+      };
+      const result = await runExtract(buildToolSource(input.source, requestConfig), input.run);
+      return {
+        skillKey,
+        requestPayload: result.requestPayload,
+        responsePayload: result.responsePayload,
+        modelResult: {
+          ok: true,
+          skill: formatScraperSkillKey(skillKey),
+          records_stored: result.stats?.total ?? 0,
+          pages: summarizePageResponse(result.responsePayload)
+        }
+      };
+    }
+    case "tavily_map": {
       const requestConfig = {
         url: text(input.args.url),
-        filter: text(input.args.filter),
-        limit: numberValue(input.args.limit, 500),
-        includeSubdomains: booleanValue(input.args.include_subdomains, false),
-        ignoreQueryParameters: booleanValue(input.args.ignore_query_parameters, true),
-        advancedParams: {}
+        instructions: text(input.args.instructions),
+        maxDepth: numberValue(input.args.max_depth, 1),
+        maxBreadth: numberValue(input.args.max_breadth, 20),
+        limit: numberValue(input.args.limit, 50),
+        selectPaths: stringArray(input.args.select_paths),
+        excludePaths: stringArray(input.args.exclude_paths)
       };
       const result = await runMap(buildToolSource(input.source, requestConfig), input.run);
       return {
@@ -211,63 +193,18 @@ async function executeAgentTool(input: {
         }
       };
     }
-    case "xcrawl":
-    case "xcrawl_scrape": {
+    case "tavily_crawl": {
       const requestConfig = {
         url: text(input.args.url),
-        deliveryMode: text(input.args.mode) === "async" ? "async" : "sync",
-        device: text(input.args.device) || "desktop",
-        locale: text(input.args.locale) || "zh-CN,zh;q=0.9",
-        waitUntil: text(input.args.wait_until) || "networkidle",
-        formats: stringArray(input.args.formats).filter((item) => SCRAPER_OUTPUT_FORMATS.includes(item as any)),
-        jsonPrompt: text(input.args.json_prompt),
-        jsonSchema: parseJsonText(input.args.json_schema_text),
-        proxyLocation: text(input.args.proxy_location),
-        stickySession: text(input.args.sticky_session),
-        advancedParams: {}
-      };
-      const result = await runScrape(buildToolSource(input.source, requestConfig), input.run);
-      const scrapePayload =
-        result.responsePayload && typeof result.responsePayload === "object" && "result" in result.responsePayload
-          ? (result.responsePayload.result as Record<string, unknown>)
-          : (result.responsePayload as Record<string, unknown>);
-
-      return {
-        skillKey,
-        requestPayload: result.requestPayload,
-        responsePayload: result.responsePayload,
-        modelResult: {
-          ok: true,
-          skill: formatScraperSkillKey(skillKey),
-          records_stored: result.stats?.total ?? 0,
-          task_id: result.stats?.taskId ?? null,
-          page: summarizeScrapeResponse(scrapePayload)
-        }
-      };
-    }
-    case "xcrawl_crawl": {
-      const requestConfig = {
-        url: text(input.args.url),
-        limit: numberValue(input.args.limit, 100),
-        maxDepth: numberValue(input.args.max_depth, 3),
-        include: stringArray(input.args.include),
-        exclude: stringArray(input.args.exclude),
-        device: text(input.args.device) || "desktop",
-        locale: text(input.args.locale) || "zh-CN,zh;q=0.9",
-        waitUntil: text(input.args.wait_until) || "networkidle",
-        formats: stringArray(input.args.formats).filter((item) => SCRAPER_OUTPUT_FORMATS.includes(item as any)),
-        jsonPrompt: text(input.args.json_prompt),
-        jsonSchema: parseJsonText(input.args.json_schema_text),
-        proxyLocation: text(input.args.proxy_location),
-        stickySession: text(input.args.sticky_session),
-        advancedParams: {}
+        instructions: text(input.args.instructions),
+        chunksPerSource: 3,
+        maxDepth: numberValue(input.args.max_depth, 2),
+        maxBreadth: numberValue(input.args.max_breadth, 20),
+        limit: numberValue(input.args.limit, 50),
+        selectPaths: stringArray(input.args.select_paths),
+        excludePaths: stringArray(input.args.exclude_paths)
       };
       const result = await runCrawl(buildToolSource(input.source, requestConfig), input.run);
-      const crawlPayload =
-        result.responsePayload && typeof result.responsePayload === "object" && "result" in result.responsePayload
-          ? (result.responsePayload.result as Record<string, unknown>)
-          : (result.responsePayload as Record<string, unknown>);
-      const pages = Array.isArray(crawlPayload?.data) ? crawlPayload.data : [];
 
       return {
         skillKey,
@@ -277,14 +214,7 @@ async function executeAgentTool(input: {
           ok: true,
           skill: formatScraperSkillKey(skillKey),
           records_stored: result.stats?.total ?? 0,
-          task_id: result.stats?.taskId ?? null,
-          pages: pages
-            .slice(0, 6)
-            .map((page) => ({
-              title: pickBestTitle(page, String(page?.url || page?.page_url || "")),
-              url: String(page?.url || page?.page_url || "")
-            }))
-            .filter((page) => page.url)
+          pages: summarizePageResponse(result.responsePayload)
         }
       };
     }
@@ -390,8 +320,7 @@ export async function runAgentSource(source: ScraperSourceDoc, run: ScraperRunDo
         source,
         run,
         toolName: functionCall.name,
-        args: functionCall.args,
-        allowAsync: promptConfig.constraints.allowAsync
+        args: functionCall.args
       });
 
       skillsUsed.add(execution.skillKey);

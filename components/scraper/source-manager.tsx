@@ -28,7 +28,7 @@ import {
   X
 } from "lucide-react";
 
-const AVAILABLE_SKILLS = ["xcrawl", "xcrawl-search", "xcrawl-map", "xcrawl-scrape", "xcrawl-crawl"];
+const AVAILABLE_SKILLS = ["tavily-search", "tavily-extract", "tavily-map", "tavily-crawl"];
 const DEFAULT_MODEL = "google/gemini-3.5-flash";
 
 type AgentConfig = {
@@ -38,7 +38,6 @@ type AgentConfig = {
   defaultInputs?: Record<string, unknown>;
   constraints?: {
     maxToolCalls?: number;
-    allowAsync?: boolean;
   };
 };
 
@@ -77,7 +76,7 @@ function buildAgentConfig(goal: string): AgentConfig {
     model: DEFAULT_MODEL,
     enabledSkills: AVAILABLE_SKILLS,
     defaultInputs: {},
-    constraints: { maxToolCalls: 50, allowAsync: true }
+    constraints: { maxToolCalls: 50 }
   };
 }
 
@@ -100,11 +99,10 @@ function shortText(value: string, max = 180) {
 
 function toolLabel(name: string) {
   const map: Record<string, string> = {
-    xcrawl_search: "搜索",
-    xcrawl_map: "站点地图",
-    xcrawl_scrape: "抓取网页",
-    xcrawl: "抓取网页",
-    xcrawl_crawl: "批量爬取"
+    tavily_search: "搜索",
+    tavily_extract: "读取网页",
+    tavily_map: "站点地图",
+    tavily_crawl: "批量采集"
   };
   return map[name] || name;
 }
