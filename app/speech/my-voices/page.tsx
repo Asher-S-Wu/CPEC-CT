@@ -8,9 +8,11 @@ import { EmptyState } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useConfirm } from '@/components/ui/confirm-provider';
 import type { VoiceItem } from '@/types/audio/tts';
 
 export default function MyVoicesPage() {
+  const confirmAction = useConfirm();
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [voices, setVoices] = useState<VoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,13 @@ export default function MyVoicesPage() {
   };
 
   const handleDelete = async (voiceId: string) => {
-    if (!confirm('确定要删除这个声音吗？')) {
+    const ok = await confirmAction({
+      title: '删除声音',
+      message: '确定要删除这个声音吗？',
+      confirmText: '删除',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
 

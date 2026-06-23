@@ -284,7 +284,7 @@ export default function ThinkingBlock({
                 className="overflow-hidden"
               >
                 <div
-                  className={`thinking-content mt-2 ml-4 p-4 bg-muted/50 rounded-[var(--radius-lg)] text-sm leading-relaxed transition-all duration-500 border ${isThoughtStreaming ? "border-primary/40 ring-1 ring-primary/20 shadow-[0_0_15px_rgba(37,99,235,0.12)]" : "border-border"}`}
+                  className={`thinking-content mt-2 ml-4 p-4 bg-muted/50 rounded-lg text-sm leading-relaxed transition-colors duration-300 border ${isThoughtStreaming ? "border-[var(--oa-ink)]" : "border-border"}`}
                   ref={containerRef}
                 >
                   <Markdown
@@ -481,7 +481,7 @@ export default function ThinkingBlock({
                 className="overflow-hidden"
               >
                 <div
-                  className={`thinking-content mt-2 ml-4 p-4 bg-muted/50 rounded-[var(--radius-lg)] text-sm leading-relaxed transition-all duration-500 border ${isRunning ? "border-primary/40 ring-1 ring-primary/20 shadow-[0_0_15px_rgba(37,99,235,0.12)]" : "border-border"}`}
+                  className={`thinking-content mt-2 ml-4 p-4 bg-muted/50 rounded-lg text-sm leading-relaxed transition-colors duration-300 border ${isRunning ? "border-[var(--oa-ink)]" : "border-border"}`}
                   ref={containerRef}
                 >
                   <Markdown
@@ -624,7 +624,7 @@ export default function ThinkingBlock({
                     </button>
                     {expandedTimelineId === "__simple__" ? (
                       <div
-                        className={`thinking-content thinking-content-panel bg-muted/50 border overflow-y-auto w-full max-w-full md:max-w-[760px] text-muted-foreground transition-all duration-500 ${isStreaming ? "border-primary/40 ring-1 ring-primary/20 shadow-[0_0_15px_rgba(37,99,235,0.12)]" : "border-border"}`}
+                        className={`thinking-content thinking-content-panel bg-muted/50 border overflow-y-auto w-full max-w-full md:max-w-[760px] text-muted-foreground transition-colors duration-300 ${isStreaming ? "border-[var(--oa-ink)]" : "border-border"}`}
                         ref={containerRef}
                       >
                         <Markdown

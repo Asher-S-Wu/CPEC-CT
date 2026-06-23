@@ -119,13 +119,13 @@ export default function ImageGenerationPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {error ? <div className="alert-danger">{error}</div> : null}
 
-            <div className="grid grid-cols-2 gap-2 rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-paper-soft)] p-1">
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-paper-soft)] p-1">
               <button
                 type="button"
                 onClick={() => handleModeChange('generate')}
-                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(var(--radius-md)-2px)] text-sm font-semibold transition ${
+                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'generate'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)] shadow-sm'
+                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -135,9 +135,9 @@ export default function ImageGenerationPage() {
               <button
                 type="button"
                 onClick={() => handleModeChange('edit')}
-                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(var(--radius-md)-2px)] text-sm font-semibold transition ${
+                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'edit'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)] shadow-sm'
+                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -152,7 +152,7 @@ export default function ImageGenerationPage() {
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
                   <label
                     htmlFor="source-image"
-                    className="flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-[var(--radius-md)] border border-dashed border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-4 py-5 text-center text-sm text-[var(--oa-muted)] transition hover:border-[var(--oa-blue)] hover:text-[var(--oa-ink)]"
+                    className="flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-4 py-5 text-center text-sm text-[var(--oa-muted)] transition hover:border-[var(--oa-ink)] hover:text-[var(--oa-ink)]"
                   >
                     <Upload className="mb-2 h-6 w-6" />
                     <span className="font-medium">{sourceImage ? sourceImage.name : '上传 PNG、JPG 或 WEBP'}</span>
@@ -167,14 +167,14 @@ export default function ImageGenerationPage() {
                     />
                   </label>
 
-                  <div className="relative overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
+                  <div className="relative overflow-hidden rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
                     {sourcePreviewUrl ? (
                       <>
                         <img src={sourcePreviewUrl} alt="参考图片" className="h-[132px] w-full object-contain" />
                         <button
                           type="button"
                           onClick={() => handleSourceImageChange(null)}
-                          className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,0.58)] text-white transition hover:bg-[rgba(0,0,0,0.72)]"
+                          className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
                           aria-label="移除图片"
                         >
                           <X className="h-4 w-4" />
@@ -200,7 +200,7 @@ export default function ImageGenerationPage() {
                 placeholder={mode === 'edit'
                   ? '描述你想修改的地方，例如：保留人物姿势，将背景改成夜晚街景，增加霓虹灯'
                   : '描述你想生成的画面，例如：夕阳下的城市天际线，电影感光影，细节清晰'}
-                className="min-h-[140px] w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                className="min-h-[140px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
               />
               <div className="text-right text-xs text-[var(--oa-muted)]">
                 {prompt.length}/{IMAGE_PROMPT_MAX_LENGTH}
@@ -213,7 +213,7 @@ export default function ImageGenerationPage() {
                 id="image-size"
                 value={size}
                 onChange={(event) => setSize(event.target.value as ImageSize)}
-                className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
               >
                 {IMAGE_SIZE_OPTIONS.map((option) => (
                   <option key={option.id} value={option.id}>{option.label}</option>

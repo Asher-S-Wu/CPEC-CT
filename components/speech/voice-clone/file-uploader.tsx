@@ -81,8 +81,8 @@ export function FileUploader({
       )}
 
       {uploadedFile ? (
-        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/80 bg-[var(--soft-green)] p-3">
-          <FileAudio className="h-8 w-8 text-[var(--audio-green)]" />
+        <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-[var(--oa-paper-soft)] p-3">
+          <FileAudio className="h-8 w-8 text-[var(--oa-ink)]" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">
               {uploadedFile.split('/').pop()}
@@ -100,10 +100,10 @@ export function FileUploader({
           </Button>
         </div>
       ) : (
-        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-6">
+        <div className="rounded-xl border border-dashed border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-6">
           <div className="text-center space-y-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--soft-green)]">
-              <Upload className="h-6 w-6 text-[var(--audio-green)]" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--oa-paper-soft)]">
+              <Upload className="h-6 w-6 text-[var(--oa-muted)]" />
             </div>
             <div>
               <input
@@ -117,7 +117,7 @@ export function FileUploader({
               />
               <label
                 htmlFor={`file-upload-${label}`}
-                className="inline-flex cursor-pointer items-center justify-center rounded-[var(--radius-md)] bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 {isUploading ? '上传中...' : '选择文件'}
               </label>

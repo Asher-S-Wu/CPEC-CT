@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import ConfirmModal from "./ConfirmModal";
+import ConfirmModal from "@/components/ui/confirm-modal";
 import { ModelGlyph } from "./ModelVisuals";
 
 function ConversationItem({
@@ -45,26 +45,26 @@ function ConversationItem({
             onChange={(event) => onEditingTitleChange(event.target.value)}
             onKeyDown={onHandleKeyDown}
             onBlur={onHandleSaveEdit}
-            className="w-full rounded-[var(--radius-md)] border border-[var(--ai-accent-soft-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm font-medium text-foreground outline-none"
+            className="w-full rounded-lg border border-[var(--oa-ink)] bg-[var(--oa-card-bg)] px-3 py-2.5 text-sm font-medium text-foreground outline-none"
           />
         </div>
       ) : (
         <>
           <button
             onClick={() => onLoadConversation(conversation._id)}
-            className={`ai-sidebar-item relative flex w-full items-center gap-3 overflow-hidden rounded-[var(--radius-md)] border px-3.5 py-3 text-left outline-none transition-all focus-visible:outline-none focus-visible:ring-0 ${
+            className={`ai-sidebar-item relative flex w-full items-center gap-3 overflow-hidden rounded-lg border px-3 py-2.5 text-left outline-none transition-colors focus-visible:outline-none focus-visible:ring-0 ${
               active
-                ? "ai-primary-soft text-foreground"
-                : "border-transparent bg-transparent text-[var(--text-secondary)] hover:border-[var(--ai-panel-border)] hover:bg-[var(--oa-paper-soft)] hover:text-foreground"
+                ? "bg-[#0a0a0a] text-white"
+                : "border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--oa-paper-soft)] hover:text-foreground"
             }`}
             type="button"
           >
-            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] border transition-colors ${
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${
               active
-                ? "border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--ai-accent-strong)]"
+                ? "border-white/20 bg-white/10 text-white"
                 : "border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--text-secondary)]"
             }`}>
-              <ModelGlyph model={conversation.model} size={18} />
+              <ModelGlyph model={conversation.model} size={16} />
             </span>
             <span className="min-w-0 flex-1 pr-32">
               <span className="block truncate text-sm font-semibold text-current">
@@ -74,7 +74,7 @@ function ConversationItem({
           </button>
 
           <div
-            className={`absolute right-3 top-3 flex items-center gap-0.5 rounded-full border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-1 transition-all ${
+            className={`absolute right-2 top-2 flex items-center gap-0.5 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-1 transition-all ${
               activeActionsId === conversation._id
                 ? "opacity-100"
                 : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
@@ -82,8 +82,8 @@ function ConversationItem({
           >
             <button
               onClick={(event) => onPinClick(conversation, event)}
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
-                conversation.pinned ? "text-[var(--ai-accent-strong)] hover:bg-[var(--ai-accent-soft)]" : "text-[var(--text-secondary)] hover:bg-[var(--oa-paper-soft)]"
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors ${
+                conversation.pinned ? "text-[var(--oa-ink)] hover:bg-[var(--oa-paper-soft)]" : "text-[var(--text-secondary)] hover:bg-[var(--oa-paper-soft)]"
               }`}
               title={conversation.pinned ? "取消置顶" : "置顶"}
               type="button"
@@ -92,7 +92,7 @@ function ConversationItem({
             </button>
             <button
               onClick={(event) => onDuplicateClick(conversation, event)}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-paper-soft)]"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-paper-soft)]"
               title="复制"
               type="button"
             >
@@ -100,7 +100,7 @@ function ConversationItem({
             </button>
             <button
               onClick={(event) => onEditClick(conversation, event)}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-paper-soft)]"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-paper-soft)]"
               title="重命名"
               type="button"
             >
@@ -108,7 +108,7 @@ function ConversationItem({
             </button>
             <button
               onClick={(event) => onDeleteClick(conversation, event)}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-red-soft-bg)] hover:text-[var(--oa-red)]"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-red-soft-bg)] hover:text-[var(--oa-red)]"
               title="删除"
               type="button"
             >
@@ -144,7 +144,7 @@ function ConversationSection({
 
   return (
     <section className="space-y-2">
-      <div className="px-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+      <div className="px-3 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
         {title}
       </div>
       <div className="space-y-1">
@@ -255,13 +255,13 @@ function SidebarPanel({
   };
 
   return (
-    <div className="ai-sidebar-panel flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface)]">
-      <div className="ai-sidebar-summary border-b border-[var(--ai-panel-border)] px-5 py-5">
+    <div className="ai-sidebar-panel flex h-full flex-col overflow-hidden rounded-xl border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface)]">
+      <div className="ai-sidebar-summary border-b border-[var(--ai-panel-border)] px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           {mobile ? (
             <button
               onClick={onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] text-[var(--text-secondary)] transition-colors hover:text-foreground"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] text-[var(--text-secondary)] transition-colors hover:text-foreground"
               type="button"
               aria-label="关闭侧栏"
             >
@@ -271,7 +271,7 @@ function SidebarPanel({
 
           <button
             onClick={handleStartNewChat}
-            className="ai-primary-action inline-flex flex-1 items-center justify-center gap-2 rounded-[var(--radius-md)] px-4 py-3.5 text-sm font-semibold transition-colors"
+            className="ai-primary-action inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors"
             type="button"
           >
             <Plus size={16} />
@@ -280,7 +280,7 @@ function SidebarPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2.5 py-4 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-2 py-3 custom-scrollbar">
         {conversations.length > 0 ? (
           <div className="space-y-4">
             {pinnedConversations.length > 0 ? (
@@ -327,7 +327,7 @@ function SidebarPanel({
           </div>
         ) : (
           <div className="flex items-start justify-center px-3 py-8">
-            <div className="w-full rounded-[var(--radius-lg)] border border-dashed border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-6 text-center text-sm font-semibold text-foreground">
+            <div className="w-full rounded-xl border border-dashed border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-6 text-center text-sm font-medium text-foreground">
               暂无会话
             </div>
           </div>

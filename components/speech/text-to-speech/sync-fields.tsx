@@ -82,8 +82,8 @@ export function SyncFields(props: {
               {PRIMARY_MODELS.map((model) => (
                 <label
                   key={model.id}
-                  className={`flex cursor-pointer flex-col rounded-[var(--radius-md)] border p-4 transition-colors ${
-                    form.model === model.id ? 'border-[var(--audio-green)] bg-[var(--soft-green)]' : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:bg-[var(--oa-paper-soft)]'
+                  className={`flex cursor-pointer flex-col rounded-lg border p-4 transition-colors ${
+                    form.model === model.id ? 'border-[#0a0a0a] bg-[#f5f5f5]' : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:bg-[var(--oa-paper-soft)]'
                   }`}
                 >
                   <input

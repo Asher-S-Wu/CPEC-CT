@@ -130,9 +130,9 @@ export function AudioUploader({
       ) : null}
 
       {uploadedFile ? (
-        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/80 bg-[var(--soft-green)] p-3">
-          <FileAudio className="h-8 w-8 text-[var(--audio-green)]" />
-          <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-[var(--oa-paper-soft)] p-3">
+          <FileAudio className="h-8 w-8 text-[var(--oa-ink)]" />
+          <div className="min-w-0">
             <p className="truncate text-sm font-medium">
               {uploadedFileName || uploadedFile.split('/').pop()}
             </p>
@@ -149,10 +149,10 @@ export function AudioUploader({
           </Button>
         </div>
       ) : (
-        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-6">
+        <div className="rounded-xl border border-dashed border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-6">
           <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--soft-green)]">
-              <Upload className="h-6 w-6 text-[var(--audio-green)]" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--oa-paper-soft)]">
+              <Upload className="h-6 w-6 text-[var(--oa-muted)]" />
             </div>
             <div>
               <input
@@ -166,7 +166,7 @@ export function AudioUploader({
               />
               <label
                 htmlFor="subtitle-audio-upload"
-                className={`inline-flex items-center justify-center rounded-[var(--radius-md)] px-4 py-2 text-sm font-bold transition-colors ${
+                className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   disabled
                     ? 'cursor-not-allowed bg-muted text-foreground/70'
                     : 'cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90'

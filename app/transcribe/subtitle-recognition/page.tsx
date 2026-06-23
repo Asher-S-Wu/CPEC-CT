@@ -41,11 +41,11 @@ function Switch({
       onClick={onToggle}
       disabled={disabled}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        checked ? 'bg-[var(--audio-green)]' : 'bg-muted'
+        checked ? 'bg-[#0a0a0a]' : 'bg-muted'
       } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-[var(--oa-elevated)] transition-transform ${
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
           checked ? 'translate-x-6' : 'translate-x-1'
         }`}
       />
@@ -176,19 +176,19 @@ export default function SubtitleRecognitionPage() {
               type="button"
               onClick={() => setRecognitionMode('text')}
               disabled={isProcessing}
-              className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-[var(--radius-md)] border p-4 transition-all ${
+              className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 transition-colors ${
                 recognitionMode === 'text'
-                  ? 'border-[var(--audio-green)] bg-[var(--soft-green)]'
-                  : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[var(--audio-green)]'
+                  ? 'border-[#0a0a0a] bg-[#f5f5f5]'
+                  : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[#0a0a0a]'
               } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
             >
               <FileText
                 className={`h-8 w-8 ${
-                  recognitionMode === 'text' ? 'text-[var(--audio-green)]' : 'text-muted-foreground'
+                  recognitionMode === 'text' ? 'text-[var(--oa-ink)]' : 'text-muted-foreground'
                 }`}
               />
               <div className="text-center">
-                <div className={`font-bold ${recognitionMode === 'text' ? 'text-[var(--audio-green)]' : ''}`}>
+                <div className={`font-medium ${recognitionMode === 'text' ? 'text-[var(--oa-ink)]' : ''}`}>
                   文本识别
                 </div>
                 <div className="text-xs text-muted-foreground">适合整理录音文字内容</div>
@@ -199,19 +199,19 @@ export default function SubtitleRecognitionPage() {
               type="button"
               onClick={() => setRecognitionMode('subtitle')}
               disabled={isProcessing}
-              className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-[var(--radius-md)] border p-4 transition-all ${
+              className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 transition-colors ${
                 recognitionMode === 'subtitle'
-                  ? 'border-[var(--audio-green)] bg-[var(--soft-green)]'
-                  : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[var(--audio-green)]'
+                  ? 'border-[#0a0a0a] bg-[#f5f5f5]'
+                  : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[#0a0a0a]'
               } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
             >
               <Subtitles
                 className={`h-8 w-8 ${
-                  recognitionMode === 'subtitle' ? 'text-[var(--audio-green)]' : 'text-muted-foreground'
+                  recognitionMode === 'subtitle' ? 'text-[var(--oa-ink)]' : 'text-muted-foreground'
                 }`}
               />
               <div className="text-center">
-                <div className={`font-bold ${recognitionMode === 'subtitle' ? 'text-[var(--audio-green)]' : ''}`}>
+                <div className={`font-medium ${recognitionMode === 'subtitle' ? 'text-[var(--oa-ink)]' : ''}`}>
                   字幕识别
                 </div>
                 <div className="text-xs text-muted-foreground">自动生成字幕文件（含时间轴），可导出 SRT 格式</div>
@@ -272,10 +272,10 @@ export default function SubtitleRecognitionPage() {
                   type="button"
                   onClick={() => setLanguage(option.value)}
                   disabled={isProcessing}
-                  className={`rounded-[var(--radius-md)] border px-4 py-2 text-sm font-bold transition-colors ${
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                     language === option.value
-                      ? 'border-[var(--audio-green)] bg-[var(--soft-green)] text-[var(--audio-green)]'
-                      : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[var(--audio-green)]'
+                      ? 'border-[#0a0a0a] bg-[#0a0a0a] text-white'
+                      : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] hover:border-[#0a0a0a]'
                   } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
                 >
                   {option.label}
@@ -320,7 +320,7 @@ export default function SubtitleRecognitionPage() {
               disabled={isProcessing}
               rows={3}
               placeholder="例如：菁门·先锋行，百炼，数字融媒体"
-              className={`w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:border-[var(--audio-green)] focus:border-[var(--audio-green)] focus:outline-none ${
+              className={`w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:border-[#0a0a0a] focus:border-[var(--oa-ink)] focus:outline-none ${
                 isProcessing ? 'cursor-not-allowed opacity-50' : ''
               }`}
             />
@@ -355,7 +355,7 @@ export default function SubtitleRecognitionPage() {
                 value={translateLang}
                 onChange={(e) => setTranslateLang(e.target.value as TranslateLanguage)}
                 disabled={isProcessing || isTranslating}
-                className={`w-full appearance-none px-4 py-2.5 pr-10 text-sm transition-colors hover:border-[var(--audio-green)] focus:border-[var(--audio-green)] focus:outline-none ${
+                className={`w-full appearance-none px-4 py-2.5 pr-10 text-sm transition-colors hover:border-[#0a0a0a] focus:border-[var(--oa-ink)] focus:outline-none ${
                   isProcessing || isTranslating ? 'cursor-not-allowed opacity-50' : ''
                 }`}
               >
@@ -418,10 +418,10 @@ export default function SubtitleRecognitionPage() {
               ) : null}
             </div>
 
-            <div className="custom-scrollbar max-h-80 overflow-y-auto rounded-[var(--radius-md)] border border-border bg-muted/30 p-4 font-mono text-sm">
+            <div className="custom-scrollbar max-h-80 overflow-y-auto rounded-lg border border-border bg-muted/30 p-4 font-mono text-sm">
               {sentences.map((sentence, index) => (
                 <div key={index} className="mb-4 last:mb-0">
-                  <div className="font-bold text-primary">{index + 1}</div>
+                  <div className="font-medium text-primary">{index + 1}</div>
                   {recognitionMode === 'subtitle' ? (
                     <div className="text-muted-foreground">
                       {msToSrtTime(sentence.begin_time)} --&gt; {msToSrtTime(sentence.end_time)}

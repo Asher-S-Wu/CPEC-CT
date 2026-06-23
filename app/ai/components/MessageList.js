@@ -11,7 +11,7 @@ import {
 import Markdown from "./Markdown";
 import ThinkingBlock from "./ThinkingBlock";
 import ImageLightbox from "./ImageLightbox";
-import ConfirmModal from "./ConfirmModal";
+import ConfirmModal from "@/components/ui/confirm-modal";
 import { useToast } from "./ToastProvider";
 import { exportMessageContent } from "@/lib/ai/client/messageExport";
 import {
@@ -354,11 +354,11 @@ export default function MessageList({
                         ref={editTextareaRef}
                         value={editingContent}
                         onChange={(e) => onEditingContentChange(e.target.value)}
-                        className="block max-h-[45vh] w-full resize-none overflow-y-auto bg-transparent p-0 text-sm leading-6 text-[#fffaf0] outline-none"
+                        className="block max-h-[45vh] w-full resize-none overflow-y-auto bg-transparent p-0 text-sm leading-6 text-white outline-none"
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={onCancelEdit} className="rounded-full bg-[rgba(255,250,240,0.86)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[rgba(255,250,240,0.96)]">取消</button>
+                      <button onClick={onCancelEdit} className="rounded-full bg-[var(--oa-paper-soft)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-muted)]">取消</button>
                       <button onClick={() => onSubmitEdit(i)} className="ai-primary-action rounded-full px-3 py-1.5 text-xs transition-colors">提交</button>
                     </div>
                   </div>
@@ -424,9 +424,9 @@ export default function MessageList({
                             </button>
                             <AnimatePresence>
                               {openExportMenuIndex === i && (
-                                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} className="ai-floating-panel absolute right-0 top-full z-20 mt-1 min-w-[150px] rounded-[var(--radius-lg)] p-1.5">
+                                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} className="ai-floating-panel absolute right-0 top-full z-20 mt-1 min-w-[150px] rounded-xl p-1.5">
                                   {["markdown", "pdf", "docx"].map(format => (
-                                    <button key={format} onClick={() => handleExportMessage(format, msg)} className="w-full rounded-[var(--radius-md)] px-3 py-2 text-left text-sm uppercase transition-colors hover:bg-[var(--ai-panel-muted)]" type="button">{format}</button>
+                                    <button key={format} onClick={() => handleExportMessage(format, msg)} className="w-full rounded-lg px-3 py-2 text-left text-sm uppercase transition-colors hover:bg-[var(--ai-panel-muted)]" type="button">{format}</button>
                                   ))}
                                 </motion.div>
                               )}
@@ -451,7 +451,7 @@ export default function MessageList({
       {messages.length > 0 && (loading || hasWaitingFirstChunk) && !hasStreamingContent && (
         <div className="mx-auto flex w-full max-w-5xl items-start gap-3">
           <ResponsiveAIAvatar model={model} desktopSize={24} animate />
-          <div className="rounded-[var(--radius-lg)] border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface-strong)] px-5 py-3">
+          <div className="rounded-xl border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface-strong)] px-5 py-3">
             <LoadingSweepText text="..." className="loading-sweep-dots text-xl" />
           </div>
         </div>

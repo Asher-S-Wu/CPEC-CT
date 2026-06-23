@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { useConfirm } from '@/components/ui/confirm-provider';
 import type { VoiceItem } from '@/types/audio/tts';
 
 interface TtsHistoryItem {
@@ -23,6 +24,7 @@ interface TtsHistoryItem {
 }
 
 export default function TTSHistoryPage() {
+  const confirmAction = useConfirm();
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [history, setHistory] = useState<TtsHistoryItem[]>([]);
   const [voices, setVoices] = useState<VoiceItem[]>([]);
@@ -172,7 +174,13 @@ export default function TTSHistoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这条记录吗？')) {
+    const ok = await confirmAction({
+      title: '删除记录',
+      message: '确定要删除这条记录吗？',
+      confirmText: '删除',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
 
@@ -300,15 +308,15 @@ export default function TTSHistoryPage() {
                     </p>
                   </div>
                   <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-[var(--radius-md)] bg-secondary/50 p-3">
+                    <div className="rounded-lg bg-secondary/50 p-3">
                       <span className="text-muted-foreground">模型</span>
                       <p className="break-words font-medium">{item.model}</p>
                     </div>
-                    <div className="rounded-[var(--radius-md)] bg-secondary/50 p-3">
+                    <div className="rounded-lg bg-secondary/50 p-3">
                       <span className="text-muted-foreground">声音名称</span>
                       <p className="break-words font-medium">{getVoiceName(item.voiceId)}</p>
                     </div>
-                    <div className="rounded-[var(--radius-md)] bg-secondary/50 p-3">
+                    <div className="rounded-lg bg-secondary/50 p-3">
                       <span className="text-muted-foreground">语言</span>
                       <p className="font-medium">{String(item.parameters?.languageType || 'auto')}</p>
                     </div>

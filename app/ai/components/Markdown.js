@@ -99,16 +99,16 @@ export default function Markdown({
             const lang = match ? match[1] : "";
             
             if (inline) {
-              return <code className="rounded bg-[var(--oa-paper-soft)] px-1.5 py-0.5 font-mono text-[13px] text-[var(--oa-blue)]" {...props}>{children}</code>;
+              return <code className="rounded bg-[var(--oa-paper-soft)] px-1.5 py-0.5 font-mono text-[13px] text-[var(--oa-ink)]" {...props}>{children}</code>;
             }
 
             return (
-              <div className="group/code relative my-4 overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] shadow-sm">
-                <div className="flex items-center justify-between border-b border-[var(--oa-card-head-border)] bg-[var(--oa-paper-soft)] px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-[var(--oa-muted)]">
+              <div className="group/code relative my-4 overflow-hidden rounded-lg border border-[var(--oa-card-border)]">
+                <div className="flex items-center justify-between border-b border-[var(--oa-card-head-border)] bg-[var(--oa-paper-soft)] px-4 py-2 text-[11px] font-medium uppercase tracking-widest text-[var(--oa-muted)]">
                   <span>{lang || "code"}</span>
                   <CodeCopyButton text={String(children).replace(/\n$/, "")} />
                 </div>
-                <pre className="!m-0 !rounded-none overflow-x-auto bg-[var(--oa-ink)] p-4 text-[var(--oa-paper)] scrollbar-thin">
+                <pre className="!m-0 !rounded-none overflow-x-auto bg-[#1a1a1a] p-4 text-[#fafafa] scrollbar-thin">
                   <code className={`${className} !bg-transparent text-[13.5px] leading-relaxed`} {...props}>
                     {children}
                   </code>

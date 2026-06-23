@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Noto_Sans_SC } from "next/font/google";
 import { AppThemeProvider } from "@/components/layout/app-theme-provider";
+import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import "./globals.css";
 
 const scrollbarScript = `
@@ -58,7 +59,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className={bodyFont.variable}>
-        <AppThemeProvider>{children}</AppThemeProvider>
+        <AppThemeProvider>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </AppThemeProvider>
       </body>
     </html>
   );

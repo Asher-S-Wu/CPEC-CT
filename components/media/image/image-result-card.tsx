@@ -20,7 +20,7 @@ export function ImageResultCard({ imageUrl, title = '生成的图片' }: ImageRe
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
+        <div className="overflow-hidden rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
           <img
             src={imageUrl}
             alt={title}
@@ -30,7 +30,7 @@ export function ImageResultCard({ imageUrl, title = '生成的图片' }: ImageRe
         <a
           href={imageUrl}
           download
-          className="inline-flex text-sm font-medium text-[var(--oa-blue)] hover:underline"
+          className="inline-flex text-sm font-medium text-[var(--oa-ink)] hover:underline"
         >
           下载图片
         </a>

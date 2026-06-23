@@ -69,19 +69,18 @@ function SidebarContent({ onNavigate, collapsed }: { onNavigate?: () => void; co
         <BrandMark className="app-sidebar-mark" />
         {!collapsed && (
           <div className="min-w-0">
-            <div className="app-sidebar-title truncate">智创 AI 工作台</div>
+            <div className="app-sidebar-title truncate">智创 AI</div>
           </div>
         )}
       </div>
-      <nav className="custom-scrollbar flex-1 overflow-y-auto px-2.5 py-7">
-        <div className="flex flex-col gap-7">
+      <nav className="custom-scrollbar flex-1 overflow-y-auto px-3 py-6">
+        <div className="flex flex-col gap-6">
           {visibleSections.map((section) => (
             <div key={section.section} className="app-sidebar-section">
               {!collapsed && (
                 <div className="app-sidebar-section-title">
                   <span className="app-sidebar-section-icon">{section.icon}</span>
                   <span>{section.section}</span>
-                  <ChevronUp className="ml-auto h-3.5 w-3.5" />
                 </div>
               )}
               <div className="app-sidebar-menu-card">
@@ -95,7 +94,7 @@ function SidebarContent({ onNavigate, collapsed }: { onNavigate?: () => void; co
         {collapsed ? (
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-[10px] text-[var(--oa-sidebar-item)] transition-colors hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--oa-sidebar-item)] transition-colors hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
             title="切换主题"
             onClick={() => {
               const modes: ThemeMode[] = ["light", "dark", "system"];
@@ -104,9 +103,9 @@ function SidebarContent({ onNavigate, collapsed }: { onNavigate?: () => void; co
               setThemeMode(nextMode);
             }}
           >
-            {themeMode === "light" && <Sun className="h-5 w-5" />}
-            {themeMode === "dark" && <Moon className="h-5 w-5" />}
-            {themeMode === "system" && <Monitor className="h-5 w-5" />}
+            {themeMode === "light" && <Sun className="h-4 w-4" />}
+            {themeMode === "dark" && <Moon className="h-4 w-4" />}
+            {themeMode === "system" && <Monitor className="h-4 w-4" />}
           </button>
         ) : (
           <div className="app-theme-switcher" data-active-mode={themeMode} aria-label="主题切换">
@@ -153,7 +152,7 @@ export function Sidebar() {
       >
         <ChevronLeft
           className={cn(
-            "h-5 w-5 transition-transform duration-300",
+            "h-4 w-4 transition-transform duration-200",
             collapsed && "rotate-180"
           )}
         />
@@ -187,23 +186,23 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
       {/* 遮罩 */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-[rgba(23,32,51,0.42)] backdrop-blur-[2px] transition-opacity duration-200 md:hidden",
+          "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm transition-opacity duration-200 md:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={onClose}
       />
       <aside
         className={cn(
-          "app-sidebar fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw-1rem)] flex-col transition-transform duration-200 ease-out md:hidden",
+          "app-sidebar fixed inset-y-0 left-0 z-50 flex w-64 max-w-[calc(100vw-1rem)] flex-col transition-transform duration-200 ease-out md:hidden",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <button
           onClick={onClose}
-          className="absolute right-5 top-6 z-10 flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--oa-sidebar-muted)] transition-colors hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-md text-[var(--oa-sidebar-muted)] transition-colors hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
           aria-label="关闭菜单"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
         <SidebarContent onNavigate={onClose} />
       </aside>

@@ -38,20 +38,20 @@ export default function ImageLightbox({ open, onClose, src }) {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
-          <div className="absolute inset-0 bg-[rgba(23,32,51,0.72)]" />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.98, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative max-h-[80vh] w-full max-w-[90vw] rounded-[var(--radius-lg)] border border-[rgba(255,250,240,0.16)] bg-[rgba(23,32,51,0.36)] shadow-[var(--oa-shadow)] backdrop-blur"
+            className="relative max-h-[80vh] w-full max-w-[90vw] rounded-xl border border-white/10 bg-black/40"
           >
             <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
               {canDownload && (
                 <a
                   href={downloadUrl}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(255,250,240,0.12)] bg-[rgba(255,250,240,0.1)] px-3 py-2 text-xs font-medium text-[#fffaf0]/90 transition-colors hover:bg-[rgba(255,250,240,0.2)]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium text-white/90 transition-colors hover:bg-white/20"
                   title="下载原图"
                 >
                   <Download size={14} />
@@ -61,7 +61,7 @@ export default function ImageLightbox({ open, onClose, src }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(255,250,240,0.12)] bg-[rgba(255,250,240,0.1)] text-[#fffaf0]/80 transition-colors hover:bg-[rgba(255,250,240,0.2)] hover:text-[#fffaf0]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
                 title="关闭"
               >
                 <X size={16} />
@@ -72,7 +72,7 @@ export default function ImageLightbox({ open, onClose, src }) {
               <img
                 src={src}
                 alt=""
-                className="max-h-[80vh] max-w-[90vw] rounded-[var(--radius-md)] bg-[rgba(23,32,51,0.42)] object-contain"
+                className="max-h-[80vh] max-w-[90vw] rounded-lg object-contain"
                 draggable={false}
               />
             </div>

@@ -21,7 +21,7 @@ export function SectionSidebar({ title, subtitle, items }: SectionSidebarProps) 
 
       <div className="section-sidebar-panel sticky top-20 hidden w-full flex-col overflow-hidden lg:flex">
         <div className="border-b border-[var(--oa-card-head-border)] px-5 py-4">
-          <div className="font-heading text-sm font-bold text-[var(--oa-ink)]">{title}</div>
+          <div className="font-heading text-sm font-semibold text-[var(--oa-ink)] tracking-tight">{title}</div>
           <p className="mt-1 text-xs leading-5 text-[var(--oa-muted)]">{subtitle}</p>
         </div>
 

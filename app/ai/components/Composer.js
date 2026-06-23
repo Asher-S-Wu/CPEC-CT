@@ -343,14 +343,14 @@ export default function Composer({
             {selectedAttachments.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-3.5 py-3"
+                className="flex items-center gap-3 rounded-xl border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-3.5 py-3"
               >
                 {isImageAttachment(item) ? (
-                  <div className="h-10 w-10 overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)]">
+                  <div className="h-10 w-10 overflow-hidden rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)]">
                     {item.preview ? <img src={item.preview} alt="" className="h-full w-full object-cover" /> : null}
                   </div>
                 ) : (
-                  <div className="ai-primary-soft flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border">
+                  <div className="ai-primary-soft flex h-10 w-10 items-center justify-center rounded-lg border">
                     <FileText size={16} />
                   </div>
                 )}
@@ -373,7 +373,7 @@ export default function Composer({
         )}
       </AnimatePresence>
 
-      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface-strong)]">
+      <div className="overflow-hidden rounded-2xl border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface-strong)]">
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--ai-panel-border)] px-4 py-3 md:px-5">
           <ModelSelector
             model={model}
@@ -394,7 +394,7 @@ export default function Composer({
 
         <div className="px-4 py-3 md:px-5 md:py-4">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <div className="min-w-0 rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-3 py-3 md:px-4">
+            <div className="min-w-0 rounded-xl border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-3 py-3 md:px-4">
               {(selectedAttachments.length > 0 || isUploading) ? (
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                   <div className="flex flex-wrap items-center gap-2">
@@ -404,7 +404,7 @@ export default function Composer({
                   {selectedAttachments.length > 0 ? (
                     <button
                       onClick={clearAllAttachments}
-                      className="ai-control-chip rounded-full px-3 py-1 text-[11px] font-bold"
+                      className="ai-control-chip rounded-full px-3 py-1 text-[11px] font-medium"
                       type="button"
                     >
                       清空附件
@@ -427,11 +427,11 @@ export default function Composer({
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={selectedAttachments.length >= MAX_CHAT_ATTACHMENTS}
-                      className="ai-control-chip inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] disabled:opacity-40"
+                      className="ai-control-chip inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg disabled:opacity-40"
                       type="button"
                       title="上传附件"
                     >
-                      <Paperclip size={16} />
+                      <Paperclip size={15} />
                     </button>
                   </>
                 ) : null}
@@ -457,9 +457,9 @@ export default function Composer({
               <button
                 onClick={isStreaming || isWaitingForAI ? onStop : handleSend}
                 disabled={sendDisabled}
-                className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] transition-colors active:scale-[0.96] ${
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
                   isStreaming || isWaitingForAI
-                    ? "[background:var(--oa-danger-gradient)] text-[#fffaf0]"
+                    ? "bg-[#dc2626] text-white hover:bg-[#b91c1c]"
                     : "ai-primary-action"
                 } disabled:cursor-not-allowed disabled:border-[var(--oa-control-border)] disabled:bg-[var(--oa-paper-soft)] disabled:text-[var(--oa-muted)]`}
                 type="button"

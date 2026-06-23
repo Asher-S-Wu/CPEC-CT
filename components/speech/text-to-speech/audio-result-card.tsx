@@ -29,7 +29,7 @@ export function AudioResultCard({ audioUrl, autoPlay = false }: AudioResultCardP
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <audio ref={audioRef} controls className="w-full rounded-[var(--radius-md)]" src={audioUrl}>
+        <audio ref={audioRef} controls className="w-full rounded-lg" src={audioUrl}>
           您的浏览器不支持音频播放。
         </audio>
       </CardContent>

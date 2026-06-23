@@ -87,8 +87,8 @@ export default function ModelSelector({
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="ai-floating-panel fixed z-[61] rounded-[var(--radius-lg)] p-2"
-                style={{ ...menuStyle, borderColor: "var(--oa-muted-soft)" }}
+                className="ai-floating-panel fixed z-[61] rounded-xl p-2"
+                style={{ ...menuStyle, borderColor: "var(--oa-border)" }}
               >
                 <div className="max-h-[420px] overflow-y-auto pr-1 mobile-scroll custom-scrollbar">
                   {Array.from(groupedModels.entries()).map(([provider, items], groupIdx) => (
@@ -107,7 +107,7 @@ export default function ModelSelector({
                             setShowModelMenu(false);
                             onModelChange(item.id);
                           }}
-                          className={`flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors md:text-[13px] ${
+                          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:text-[13px] ${
                             model === item.id
                               ? "ai-primary-soft"
                               : "text-[var(--text-secondary)] hover:bg-[var(--ai-panel-muted)] hover:text-[var(--text-primary)]"

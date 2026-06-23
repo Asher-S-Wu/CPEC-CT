@@ -7,7 +7,7 @@ const PROVIDER_ICON_URLS = Object.freeze({
   deepseek: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/tmeJLqx/Property-1deepseek.svg",
 });
 
-const FALLBACK_STYLE = { label: "AI", bg: "linear-gradient(135deg,#1677ff,#003eb3)", color: "#ffffff" };
+const FALLBACK_STYLE = { label: "AI", bg: "#0a0a0a", color: "#ffffff" };
 
 function resolveProvider(model, provider) {
   if (provider) return provider;

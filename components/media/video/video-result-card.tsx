@@ -22,7 +22,7 @@ export function VideoResultCard({ videoUrl }: VideoResultCardProps) {
         <video
           controls
           playsInline
-          className="w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-black"
+          className="w-full overflow-hidden rounded-lg border border-[var(--oa-card-border)] bg-black"
           src={videoUrl}
         >
           您的浏览器不支持视频播放。
@@ -30,7 +30,7 @@ export function VideoResultCard({ videoUrl }: VideoResultCardProps) {
         <a
           href={videoUrl}
           download
-          className="inline-flex text-sm font-medium text-[var(--oa-blue)] hover:underline"
+          className="inline-flex text-sm font-medium text-[var(--oa-ink)] hover:underline"
         >
           下载视频
         </a>

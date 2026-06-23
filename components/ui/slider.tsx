@@ -38,9 +38,9 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
 
     return (
       <div className={cn('relative flex w-full touch-none select-none items-center', className)}>
-        <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-[rgba(221,213,200,0.9)]">
+        <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-[var(--oa-muted)]">
           <div
-            className="absolute h-full bg-[var(--oa-blue)] transition-all"
+            className="absolute h-full bg-[var(--oa-ink)] transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -56,8 +56,8 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
           className="absolute h-2 w-full cursor-pointer appearance-none bg-transparent
             [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--oa-blue)]
-            [&::-webkit-slider-thumb]:bg-[var(--oa-paper)] [&::-webkit-slider-thumb]:shadow
+            [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--oa-ink)]
+            [&::-webkit-slider-thumb]:bg-[var(--oa-paper)]
             [&::-webkit-slider-thumb]:transition-colors
             [&::-webkit-slider-thumb]:hover:bg-accent
             [&::-webkit-slider-thumb]:focus-visible:outline-none
@@ -68,8 +68,8 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
             [&::-webkit-slider-thumb]:disabled:opacity-50
             [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5
             [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[var(--oa-blue)]
-            [&::-moz-range-thumb]:bg-[var(--oa-paper)] [&::-moz-range-thumb]:shadow
+            [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[var(--oa-ink)]
+            [&::-moz-range-thumb]:bg-[var(--oa-paper)]
             [&::-moz-range-thumb]:transition-colors
             [&::-moz-range-thumb]:hover:bg-accent
             [&::-moz-range-thumb]:disabled:pointer-events-none

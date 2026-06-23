@@ -62,7 +62,7 @@ export default function ChatLayout({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             type="button"
-            className="fixed inset-0 z-30 bg-[rgba(23,32,51,0.42)] backdrop-blur-[2px] xl:hidden"
+            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm xl:hidden"
             onClick={onCloseSidebar}
             aria-label="关闭侧栏"
           />
@@ -129,7 +129,7 @@ export default function ChatLayout({
                       exit={{ opacity: 0, scale: 0.84, y: 10 }}
                       transition={{ type: "spring", damping: 20, stiffness: 320 }}
                       onClick={onScrollToBottom}
-                      className="absolute bottom-28 right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] text-[var(--oa-muted)] transition-colors hover:text-[var(--oa-ink)] active:scale-95 md:right-7"
+                      className="absolute bottom-28 right-5 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] text-[var(--oa-muted)] transition-colors hover:text-[var(--oa-ink)] md:right-7"
                       type="button"
                       aria-label="滚动到底部"
                     >

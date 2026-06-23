@@ -41,7 +41,7 @@ export default function SettingsMenu({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[55] flex items-center justify-center bg-[rgba(23,32,51,0.42)] p-4 backdrop-blur-[2px]"
+              className="fixed inset-0 z-[55] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
               onClick={() => setShowSettings(false)}
             >
               <motion.div
@@ -50,7 +50,7 @@ export default function SettingsMenu({
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: "spring", damping: 25, stiffness: 350 }}
                 onClick={(e) => e.stopPropagation()}
-                className="ai-shell ai-floating-panel w-full max-w-sm overflow-hidden rounded-[var(--radius-lg)] shadow-[var(--ai-shadow)]"
+                className="ai-shell ai-floating-panel w-full max-w-sm overflow-hidden rounded-xl"
               >
                 <div className="flex items-center justify-between border-b border-[var(--ai-panel-border)] px-5 py-4">
                   <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
@@ -77,7 +77,7 @@ export default function SettingsMenu({
                         setShowPromptModal(true);
                       }}
                       type="button"
-                      className="flex w-full items-center justify-between rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--oa-paper-soft)]"
+                      className="flex w-full items-center justify-between rounded-lg border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--oa-paper-soft)]"
                     >
                       <span className="flex items-center gap-2">
                         <MessageSquareQuote size={15} />
@@ -101,7 +101,7 @@ export default function SettingsMenu({
                         }));
                       }}
                       type="button"
-                      className={`flex w-full items-center justify-between rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--oa-paper-soft)] ${
+                      className={`flex w-full items-center justify-between rounded-lg border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--oa-paper-soft)] ${
                         webSearch?.enabled ? "border-[var(--oa-blue)] text-[var(--oa-blue)]" : ""
                       }`}
                     >

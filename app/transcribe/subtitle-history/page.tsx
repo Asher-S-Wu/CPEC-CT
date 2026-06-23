@@ -15,6 +15,7 @@ import { downloadTextFile, safeFileStem } from '@/lib/client/download';
 import { EmptyState } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useConfirm } from '@/components/ui/confirm-provider';
 
 interface SubtitleHistoryItem {
   id: string;
@@ -27,6 +28,7 @@ interface SubtitleHistoryItem {
 }
 
 export default function SubtitleHistoryPage() {
+  const confirmAction = useConfirm();
   const [history, setHistory] = useState<SubtitleHistoryItem[]>([]);
   const [details, setDetails] = useState<Record<string, SubtitleSentence[]>>({});
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,13 @@ export default function SubtitleHistoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这条记录吗？')) {
+    const ok = await confirmAction({
+      title: '删除记录',
+      message: '确定要删除这条记录吗？',
+      confirmText: '删除',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
 
@@ -239,10 +247,10 @@ export default function SubtitleHistoryPage() {
                     </Button>
 
                     {isExpanded && (
-                      <div className="custom-scrollbar max-h-80 overflow-y-auto rounded-[var(--radius-md)] border border-border bg-muted/30 p-4 font-mono text-sm">
+                      <div className="custom-scrollbar max-h-80 overflow-y-auto rounded-lg border border-border bg-muted/30 p-4 font-mono text-sm">
                         {sentences.map((s, i) => (
                           <div key={i} className="mb-4 last:mb-0">
-                            <div className="text-primary font-bold">{i + 1}</div>
+                            <div className="text-primary font-medium">{i + 1}</div>
                             <div className="text-muted-foreground">
                               {msToSrtTime(s.begin_time)} --&gt; {msToSrtTime(s.end_time)}
                             </div>

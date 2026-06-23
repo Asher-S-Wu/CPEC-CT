@@ -185,7 +185,7 @@ export default function VideoGenerationPage() {
   }) => (
     <div className="space-y-2">
       <Label htmlFor={`video-${kind}`}>{label}</Label>
-      <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)]">
         <div className="relative min-h-[130px]">
           <label
             htmlFor={`video-${kind}`}
@@ -205,7 +205,7 @@ export default function VideoGenerationPage() {
             <button
               type="button"
               onClick={() => handleFrameChange(kind, null)}
-              className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,0.58)] text-white transition hover:bg-[rgba(0,0,0,0.72)]"
+              className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
               aria-label={`移除${label}`}
             >
               <X className="h-4 w-4" />
@@ -240,13 +240,13 @@ export default function VideoGenerationPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {error ? <div className="alert-danger">{error}</div> : null}
 
-            <div className="grid grid-cols-2 gap-2 rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-paper-soft)] p-1">
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-paper-soft)] p-1">
               <button
                 type="button"
                 onClick={() => handleModeChange('text')}
-                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(var(--radius-md)-2px)] text-sm font-semibold transition ${
+                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'text'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)] shadow-sm'
+                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -256,9 +256,9 @@ export default function VideoGenerationPage() {
               <button
                 type="button"
                 onClick={() => handleModeChange('image')}
-                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(var(--radius-md)-2px)] text-sm font-semibold transition ${
+                className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'image'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)] shadow-sm'
+                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -296,7 +296,7 @@ export default function VideoGenerationPage() {
                 placeholder={mode === 'image'
                   ? '描述画面如何运动，例如：人物缓慢转身，镜头轻微推进，背景灯光逐渐亮起'
                   : '描述你想生成的视频内容，例如：一只金毛犬在日落海滩上奔跑，镜头缓慢推进'}
-                className="min-h-[140px] w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                className="min-h-[140px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
               />
               <div className="text-right text-xs text-[var(--oa-muted)]">
                 {prompt.length}/{VIDEO_PROMPT_MAX_LENGTH}
@@ -310,35 +310,35 @@ export default function VideoGenerationPage() {
                   id="video-aspect"
                   value={aspectRatio}
                   onChange={(event) => setAspectRatio(event.target.value as VideoAspectRatio)}
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
-                >
-                  {VIDEO_ASPECT_RATIO_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
+                className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+              >
+                {VIDEO_ASPECT_RATIO_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="video-duration">视频时长</Label>
-                <select
-                  id="video-duration"
-                  value={durationSeconds}
-                  onChange={(event) => setDurationSeconds(Number(event.target.value) as VideoDuration)}
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
-                >
-                  {VIDEO_DURATION_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="video-duration">视频时长</Label>
+              <select
+                id="video-duration"
+                value={durationSeconds}
+                onChange={(event) => setDurationSeconds(Number(event.target.value) as VideoDuration)}
+                className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+              >
+                {VIDEO_DURATION_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="video-resolution">分辨率</Label>
-                <select
-                  id="video-resolution"
-                  value={resolution}
-                  onChange={(event) => setResolution(event.target.value as VideoResolution)}
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+            <div className="space-y-2">
+              <Label htmlFor="video-resolution">分辨率</Label>
+              <select
+                id="video-resolution"
+                value={resolution}
+                onChange={(event) => setResolution(event.target.value as VideoResolution)}
+                className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
                 >
                   {VIDEO_RESOLUTION_OPTIONS.map((option) => (
                     <option key={option.id} value={option.id}>{option.label}</option>
@@ -356,12 +356,12 @@ export default function VideoGenerationPage() {
                   maxLength={VIDEO_PROMPT_MAX_LENGTH}
                   onChange={(event) => setNegativePrompt(event.target.value)}
                   placeholder="例如：低清晰度、画面抖动、文字水印、畸形手部"
-                  className="min-h-[96px] w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                  className="min-h-[96px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
                 />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex min-h-[72px] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
+                <label className="flex min-h-[72px] items-center gap-3 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
                   <input
                     type="checkbox"
                     checked={generateAudio}
@@ -370,7 +370,7 @@ export default function VideoGenerationPage() {
                   />
                   生成音轨
                 </label>
-                <label className="flex min-h-[72px] items-center gap-3 rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
+                <label className="flex min-h-[72px] items-center gap-3 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
                   <input
                     type="checkbox"
                     checked={enhancePrompt}
@@ -389,7 +389,7 @@ export default function VideoGenerationPage() {
                   id="video-person"
                   value={personGeneration}
                   onChange={(event) => setPersonGeneration(event.target.value as VideoPersonGeneration)}
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
                 >
                   {VIDEO_PERSON_GENERATION_OPTIONS.map((option) => (
                     <option key={option.id || 'default'} value={option.id}>{option.label}</option>
@@ -405,7 +405,7 @@ export default function VideoGenerationPage() {
                   onChange={(event) => setSeed(event.target.value)}
                   inputMode="numeric"
                   placeholder="留空随机"
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
                 />
               </div>
 
@@ -417,12 +417,12 @@ export default function VideoGenerationPage() {
                   onChange={(event) => setFps(event.target.value)}
                   inputMode="numeric"
                   placeholder="默认"
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--oa-blue)]"
+                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
                 />
               </div>
             </div>
 
-            <p className="text-xs text-[var(--text-muted)]">
+            <p className="text-xs text-[var(--oa-muted)]">
               视频生成通常需要 1 到 3 分钟，请耐心等待。
             </p>
 

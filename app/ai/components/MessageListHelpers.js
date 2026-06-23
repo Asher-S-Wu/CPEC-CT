@@ -48,25 +48,17 @@ export function AIAvatar({ model, size = 24, animate = false, className = "" }) 
 export function UserAvatar({ nickname = "", size = 24, className = "" }) {
   return (
     <span
-      className={`relative inline-flex items-center justify-center overflow-hidden rounded-full ring-1 ring-white/80 ${className}`.trim()}
+      className={`relative inline-flex items-center justify-center overflow-hidden rounded-full border border-[var(--oa-border)] bg-[var(--oa-paper-soft)] ${className}`.trim()}
       style={{
         width: size,
         height: size,
-        background: "linear-gradient(135deg, #edf4ff 0%, #dbeafe 52%, #c7d2fe 100%)",
-        boxShadow: "0 4px 14px rgba(79, 110, 247, 0.16)",
       }}
       aria-label={typeof nickname === "string" && nickname.trim() ? `${nickname} 默认头像` : "默认用户头像"}
     >
-      <span
-        className="absolute inset-[1px] rounded-full"
-        style={{
-          background: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.68) 100%)",
-        }}
-      />
       <UserRound
         size={Math.max(12, Math.round(size * 0.62))}
-        strokeWidth={2.1}
-        className="relative text-[hsl(var(--primary))]"
+        strokeWidth={2}
+        className="relative text-[var(--oa-ink)]"
       />
     </span>
   );
@@ -201,7 +193,7 @@ export function AttachmentCard({ file, compact = false }) {
     : null;
 
   return (
-    <div className={`flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-3 py-2 ${compact ? "min-w-[220px]" : "min-w-[240px]"}`}>
+    <div className={`flex items-center gap-3 rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-3 py-2 ${compact ? "min-w-[220px]" : "min-w-[240px]"}`}>
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--oa-paper-soft)] text-[var(--oa-muted)]">
         <FileText size={18} />
       </div>
@@ -248,7 +240,7 @@ export function Citations({ citations }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full bg-[var(--oa-paper-soft)] px-2.5 py-1.5 text-xs text-[var(--oa-muted)] transition-colors hover:bg-[var(--oa-red-soft-bg)] hover:text-[var(--oa-ink)]"
+        className="inline-flex items-center gap-2 rounded-full bg-[var(--oa-paper-soft)] px-2.5 py-1.5 text-xs text-[var(--oa-muted)] transition-colors hover:bg-[var(--oa-muted)] hover:text-[var(--oa-ink)]"
         title="查看全部来源"
       >
         <Search size={12} className="text-[var(--oa-muted)]" />
@@ -268,10 +260,10 @@ export function Citations({ citations }) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-[rgba(23,32,51,0.42)]"
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-4 shadow-[var(--oa-shadow)]">
+          <div className="relative w-full max-w-md rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm font-medium text-[var(--oa-ink)]">
                 <Search size={14} />
@@ -297,7 +289,7 @@ export function Citations({ citations }) {
                       href={citation.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-2.5 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-red-soft-bg)]"
+                      className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-2.5 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-muted)]"
                       title={citation.title || citation.url}
                     >
                       <WebFavicon url={citation.url} favicon={citation.favicon} size={16} className="flex-shrink-0" />
@@ -353,7 +345,7 @@ export function ToolRunPreview({ tool }) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-2.5 py-2 text-xs text-[var(--oa-muted)] transition-colors hover:border-[var(--oa-red-soft-border)] hover:text-[var(--oa-blue)]"
+              className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-2.5 py-2 text-xs text-[var(--oa-muted)] transition-colors hover:border-[var(--oa-ink)] hover:text-[var(--oa-ink)]"
             >
               <WebFavicon url={href} favicon={item.favicon} size={14} className="shrink-0" />
               <span className="truncate flex-1">{title}</span>
@@ -395,7 +387,7 @@ export function ToolRunCards({ tools }) {
         return (
           <div
             key={tool.id}
-            className="rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-3 py-3"
+            className="rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-3 py-3"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--oa-card-bg)] text-[var(--oa-muted)]">
@@ -430,7 +422,7 @@ export function ArtifactCards({ artifacts }) {
         return (
           <div
             key={`${artifact?.url || title}-${index}`}
-            className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-3 py-3"
+            className="flex items-center gap-3 rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-3 py-3"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--oa-paper-soft)] text-[var(--oa-muted)]">
               <FileText size={18} />
