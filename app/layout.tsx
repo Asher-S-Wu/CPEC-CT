@@ -46,7 +46,7 @@ const bodyFont = Noto_Sans_SC({
 
 export const metadata: Metadata = {
   title: "智创 AI 工作台",
-  description: "AI 对话、音频工具与数据采集，AI 赋能数字融媒体创制"
+  description: "AI 对话、语音合成与录音识别，AI 赋能数字融媒体创制"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

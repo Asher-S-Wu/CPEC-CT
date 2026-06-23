@@ -39,7 +39,7 @@ export default async function SettingsPage() {
 
           <div className="mt-5 grid gap-3">
             <p className="text-sm leading-6 text-muted-foreground">
-              本工作台提供 AI 对话、音频工具与数据采集三大核心能力。如需退出，请使用右上角的“退出登录”。
+              本工作台提供 AI 对话、语音合成、录音识别等核心能力。如需退出，请使用右上角的“退出登录”。
             </p>
           </div>
         </CardContent>

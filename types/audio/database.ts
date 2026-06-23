@@ -10,6 +10,7 @@ export interface Voice {
   promptAudioUrl?: string;
   promptText?: string;
   model: string;
+  provider?: 'minimax';
   previewAudioUrl?: string;
   language: string;
   createdAt: Date;

@@ -3,7 +3,7 @@ import { DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICE } from "@/lib/audio/client/tts-opt
 
 export const DEFAULT_SYNC_TTS_FORM: SyncTTSFormState = {
   text: "",
-  voiceId: "",
+  voiceId: DEFAULT_TTS_VOICE,
   model: DEFAULT_TTS_MODEL,
   languageType: "auto",
   audioFormat: "mp3",

@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 
-// 单一角色体系：注册即为普通用户；首位注册用户自动成为管理员（用于数据采集系统级任务）。
+// 单一角色体系：注册即为普通用户；首位注册用户自动成为管理员。
 export const ROLES = ["user", "admin"] as const;
 export type Role = (typeof ROLES)[number];
 

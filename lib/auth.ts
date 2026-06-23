@@ -160,7 +160,7 @@ export class AuthError extends Error {
   }
 }
 
-// 注册新用户。首位注册者自动成为管理员（便于数据采集模块的系统级任务管理）。
+// 注册新用户。首位注册者自动成为管理员。
 export async function registerUser(input: RegisterInput): Promise<UserDoc> {
   const users = await usersCollection();
   const existing = await users.findOne({ email: input.email });

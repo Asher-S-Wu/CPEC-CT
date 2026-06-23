@@ -7,20 +7,18 @@ import { formatRoleLabel } from "@/lib/labels";
 import { Menu } from "lucide-react";
 
 const BREADCRUMB_MAP: Record<string, string> = {
-  "/audio": "音频工具",
-  "/audio/text-to-speech": "文本转语音",
-  "/audio/tts-history": "生成历史",
-  "/audio/voice-clone": "声音克隆",
-  "/audio/my-voices": "我的声音",
-  "/audio/subtitle-recognition": "录音识别",
-  "/audio/subtitle-history": "识别历史",
+  "/speech": "语音合成",
+  "/speech/text-to-speech": "文本转语音",
+  "/speech/tts-history": "生成历史",
+  "/speech/voice-clone": "声音克隆",
+  "/speech/my-voices": "我的声音",
+  "/transcribe": "录音识别",
+  "/transcribe/subtitle-recognition": "录音识别",
+  "/transcribe/subtitle-history": "识别历史",
   "/ai": "文本工具",
   "/media": "媒体工具",
   "/media/image": "图片生成",
   "/media/video": "视频生成",
-  "/scraper": "数据采集",
-  "/scraper/sources": "智能任务",
-  "/scraper/reports": "采集报告",
   "/settings": "账号信息",
 };
 

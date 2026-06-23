@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
-import { downloadAudioUrl, synthesizeSpeech } from '@/lib/audio/bailian/client';
+import { downloadRemoteFile, synthesizeSpeech } from '@/lib/audio/minimax/client';
 import { getAudioMimeType, saveAudioBuffer } from '@/lib/audio/storage';
 import { DEFAULT_TTS_VOICE, isSupportedSpeechModel } from '@/lib/audio/client/tts-options';
 import { logError } from '@/lib/logger';
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     if (!isSupportedSpeechModel(model)) {
       return NextResponse.json(
-        { success: false, message: '仅支持百炼语音合成模型' },
+        { success: false, message: '不支持的语音模型' },
         { status: 400 }
       );
     }
@@ -59,14 +59,14 @@ export async function POST(request: NextRequest) {
       text,
       model,
       voiceId: voiceId || DEFAULT_TTS_VOICE,
-      languageType,
+      languageBoost: languageType,
       audioFormat,
       signal: request?.signal,
     });
-    const downloaded = await downloadAudioUrl(generated.audioUrl, request?.signal);
+    const downloaded = await downloadRemoteFile(generated.audioUrl, request?.signal);
     const saved = await saveAudioBuffer(
       downloaded.arrayBuffer,
-      downloaded.contentType || getAudioMimeType(audioFormat),
+      getAudioMimeType(audioFormat),
       'tts-sync'
     );
 
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       success: true,
       audio: saved.url,
       audioType: audioFormat,
-      metadata: generated.raw?.usage,
+      metadata: generated.raw?.extra_info,
     });
   } catch (error) {
     logError('audio.tts', 'create speech', error);

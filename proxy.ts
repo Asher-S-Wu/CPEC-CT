@@ -26,8 +26,7 @@ function isPublicApi(pathname: string) {
 function isProtectedApi(pathname: string) {
   return (
     pathname.startsWith("/api/ai") ||
-    pathname.startsWith("/api/audio") ||
-    pathname.startsWith("/api/scraper")
+    pathname.startsWith("/api/audio")
   );
 }
 
