@@ -23,8 +23,6 @@ const AUDIO_FORMAT_TO_MIME: Record<string, string> = {
   m4a: 'audio/mp4',
 };
 
-const AUDIO_BLOB_ROUTE_PREFIX = '/api/audio/blob';
-
 function makeFilename(prefix: string, ext: string) {
   const id = typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -52,37 +50,17 @@ export function isHttpUrl(input: string) {
 
 export function isValidAudioUrl(input: string) {
   if (typeof input !== 'string') return false;
-  if (input.startsWith('/api/audio/blob')) return true;
   return isHttpUrl(input);
-}
-
-export function isPrivateBlobUrl(input: string) {
-  try {
-    const url = new URL(input);
-    const host = url.hostname.toLowerCase();
-    return url.protocol === 'https:' &&
-      host.endsWith('.vercel-storage.com') &&
-      host.includes('.private.blob.');
-  } catch {
-    return false;
-  }
-}
-
-export function buildAudioBlobUrl(blobUrl: string) {
-  const normalized = String(blobUrl || '').trim();
-  return normalized
-    ? `${AUDIO_BLOB_ROUTE_PREFIX}?url=${encodeURIComponent(normalized)}`
-    : AUDIO_BLOB_ROUTE_PREFIX;
 }
 
 async function putAudioBlob(filename: string, buffer: Buffer, contentType: string) {
   const blob = await put(filename, buffer, {
-    access: 'private',
+    access: 'public',
     contentType,
   });
 
   return {
-    url: buildAudioBlobUrl(blob.url),
+    url: blob.url,
     blobUrl: blob.url,
     mimeType: contentType,
   };

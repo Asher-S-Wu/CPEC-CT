@@ -1,8 +1,6 @@
 import crypto from "crypto";
 import { put } from "@vercel/blob";
 
-const MEDIA_BLOB_ROUTE_PREFIX = "/api/media/blob";
-
 const MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -21,33 +19,14 @@ function getExtFromMimeType(mimeType: string, fallback = "bin") {
   return MIME_TO_EXT[String(mimeType || "").toLowerCase()] || fallback;
 }
 
-export function isPrivateBlobUrl(input: string) {
-  try {
-    const url = new URL(input);
-    const host = url.hostname.toLowerCase();
-    return url.protocol === "https:" &&
-      host.endsWith(".vercel-storage.com") &&
-      host.includes(".private.blob.");
-  } catch {
-    return false;
-  }
-}
-
-export function buildMediaBlobUrl(blobUrl: string) {
-  const normalized = String(blobUrl || "").trim();
-  return normalized
-    ? `${MEDIA_BLOB_ROUTE_PREFIX}?url=${encodeURIComponent(normalized)}`
-    : MEDIA_BLOB_ROUTE_PREFIX;
-}
-
 async function putMediaBlob(filename: string, buffer: Buffer, contentType: string) {
   const blob = await put(filename, buffer, {
-    access: "private",
+    access: "public",
     contentType,
   });
 
   return {
-    url: buildMediaBlobUrl(blob.url),
+    url: blob.url,
     blobUrl: blob.url,
     mimeType: contentType,
   };

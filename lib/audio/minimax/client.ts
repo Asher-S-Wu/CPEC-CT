@@ -116,7 +116,7 @@ export async function uploadFile(input: {
 }) {
   const form = new FormData();
   form.append('purpose', input.purpose);
-  form.append('file', new Blob([toUint8Array(input.buffer)], { type: input.contentType }), input.filename);
+  form.append('file', new Blob([toUint8Array(input.buffer).buffer as ArrayBuffer], { type: input.contentType }), input.filename);
 
   const response = await fetch(`${MINIMAX_BASE_URL}/v1/files/upload`, {
     method: 'POST',

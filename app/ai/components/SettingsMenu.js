@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Settings2, MessageSquareQuote, X } from "lucide-react";
+import { Settings2, MessageSquareQuote, X, Globe2 } from "lucide-react";
 import SystemPromptModal from "./SystemPromptModal";
 
 export default function SettingsMenu({
@@ -13,6 +13,8 @@ export default function SettingsMenu({
   addSystemPrompt,
   updateSystemPrompt,
   deleteSystemPrompt,
+  webSearch,
+  setWebSearch,
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
@@ -83,6 +85,36 @@ export default function SettingsMenu({
                       </span>
                       <span className="rounded-full bg-[var(--ai-panel-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
                         {chatSystemPrompt ? "已设置" : "默认无"}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block px-1 text-xs font-medium text-[var(--text-muted)]">
+                      联网搜索
+                    </label>
+                    <button
+                      onClick={() => {
+                        setWebSearch?.((current) => ({
+                          ...(current && typeof current === "object" ? current : {}),
+                          enabled: !current?.enabled,
+                        }));
+                      }}
+                      type="button"
+                      className={`flex w-full items-center justify-between rounded-[var(--radius-md)] border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--oa-paper-soft)] ${
+                        webSearch?.enabled ? "border-[var(--oa-blue)] text-[var(--oa-blue)]" : ""
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Globe2 size={15} />
+                        {webSearch?.enabled ? "已开启 Tavily 联网" : "开启 Tavily 联网"}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        webSearch?.enabled
+                          ? "bg-[var(--oa-blue)] text-white"
+                          : "bg-[var(--ai-panel-muted)] text-[var(--text-secondary)]"
+                      }`}>
+                        {webSearch?.enabled ? "已开启" : "已关闭"}
                       </span>
                     </button>
                   </div>

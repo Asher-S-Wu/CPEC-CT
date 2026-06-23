@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 import { put } from '@vercel/blob';
 import type { SubtitleSentence } from '@/lib/audio/subtitle/format';
-import { buildAudioBlobUrl } from '@/lib/audio/storage';
 
 function sanitizeFileStem(input: string) {
   const value = String(input || '')
@@ -49,13 +48,13 @@ export async function saveSubtitleSentences(sentences: SubtitleSentence[], fileN
     buildSubtitleFilename(fileName),
     JSON.stringify(normalized),
     {
-      access: 'private',
+      access: 'public',
       contentType: 'application/json',
     }
   );
 
   return {
-    url: buildAudioBlobUrl(blob.url),
+    url: blob.url,
     blobUrl: blob.url,
     sentenceCount: normalized.length,
     durationMs: getDurationMs(normalized),

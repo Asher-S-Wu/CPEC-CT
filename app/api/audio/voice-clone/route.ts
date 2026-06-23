@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { cloneVoice, downloadRemoteFile, uploadFile } from '@/lib/audio/minimax/client';
-import { fetchPrivateBlob } from '@/lib/audio/blob';
 import { VoiceRepository } from '@/lib/audio/mongodb/repositories';
-import { buildAudioBlobUrl, isPrivateBlobUrl, saveAudioBuffer } from '@/lib/audio/storage';
+import { saveAudioBuffer } from '@/lib/audio/storage';
 import { CLONE_PREVIEW_MODEL, DEFAULT_TTS_MODEL } from '@/lib/audio/client/tts-options';
 import { logError } from '@/lib/logger';
 
@@ -22,7 +21,7 @@ async function uploadBlobToMiniMax(
   filePrefix: string,
   signal?: AbortSignal
 ) {
-  const response = await fetchPrivateBlob(blobUrl);
+  const response = await fetch(blobUrl);
   if (!response.ok) {
     throw new Error('无法读取已上传的音频文件');
   }
@@ -70,7 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof sourceBlobUrl !== 'string' || !isPrivateBlobUrl(sourceBlobUrl)) {
+    if (typeof sourceBlobUrl !== 'string' || !sourceBlobUrl.startsWith('https://')) {
       return NextResponse.json(
         { success: false, message: '无效的音频地址' },
         { status: 400 }
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const hasPrompt = typeof promptBlobUrl === 'string' && promptBlobUrl && typeof promptText === 'string' && promptText.trim();
-    if (hasPrompt && !isPrivateBlobUrl(promptBlobUrl)) {
+    if (hasPrompt && !promptBlobUrl.startsWith('https://')) {
       return NextResponse.json(
         { success: false, message: '无效的示例音频地址' },
         { status: 400 }
@@ -127,7 +126,7 @@ export async function POST(request: NextRequest) {
       voiceId,
       name,
       description,
-      sourceAudioUrl: buildAudioBlobUrl(sourceBlobUrl),
+      sourceAudioUrl: sourceBlobUrl,
       promptText: hasPrompt ? promptText.trim() : undefined,
       model: DEFAULT_TTS_MODEL,
       provider: 'minimax',

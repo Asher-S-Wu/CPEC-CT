@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { createRecognitionTask, isBailianAsrError } from '@/lib/audio/bailian/asr';
-import { isPrivateBlobUrl } from '@/lib/audio/storage';
-import { buildSignedDownloadUrl } from '@/lib/audio/blob';
 import { saveSubtitleSentences } from '@/lib/audio/subtitle/storage';
 import { logError } from '@/lib/logger';
-
-function extractBlobUrl(fileUrl: string): string {
-  if (fileUrl.startsWith('/api/audio/blob')) {
-    try {
-      const params = new URLSearchParams(fileUrl.split('?')[1] || '');
-      return params.get('url') || fileUrl;
-    } catch {
-      return fileUrl;
-    }
-  }
-  return fileUrl;
-}
 
 type RecognitionMode = 'text' | 'subtitle';
 type RecognitionLanguage = 'auto' | 'zh' | 'en' | 'ja';
@@ -81,18 +67,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const baseUrl = new URL(request.url).origin;
-    const rawUrl = extractBlobUrl(fileUrl);
-    const resolvedFileUrl = isPrivateBlobUrl(rawUrl)
-      ? buildSignedDownloadUrl(rawUrl, baseUrl)
-      : fileUrl;
-
     const normalizedHotwords = Array.isArray(hotwords)
       ? hotwords.filter((word): word is string => typeof word === 'string')
       : undefined;
 
     const result = await createRecognitionTask({
-      fileUrl: resolvedFileUrl,
+      fileUrl,
       fileName,
       mode,
       language,

@@ -51,13 +51,12 @@ export function FileUploader({
 
     try {
       const blob = await upload(file.name, file, {
-        access: 'private',
+        access: 'public',
         handleUploadUrl: '/api/audio/upload',
       });
 
-      const proxyUrl = `/api/audio/blob?url=${encodeURIComponent(blob.url)}`;
-      setUploadedFile(proxyUrl);
-      onUploadComplete(proxyUrl, blob.url);
+      setUploadedFile(blob.url);
+      onUploadComplete(blob.url, blob.url);
     } catch (err) {
       setError((err as Error).message || '上传失败');
     } finally {
