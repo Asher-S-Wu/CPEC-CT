@@ -111,7 +111,7 @@ export default function SettingsMenu({
                       </span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         webSearch?.enabled
-                          ? "bg-[var(--oa-blue)] text-white"
+                          ? "bg-primary text-primary-foreground"
                           : "bg-[var(--ai-panel-muted)] text-[var(--text-secondary)]"
                       }`}>
                         {webSearch?.enabled ? "已开启" : "已关闭"}

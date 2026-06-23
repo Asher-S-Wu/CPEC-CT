@@ -54,14 +54,14 @@ function ConversationItem({
             onClick={() => onLoadConversation(conversation._id)}
             className={`ai-sidebar-item relative flex w-full items-center gap-3 overflow-hidden rounded-lg border px-3 py-2.5 text-left outline-none transition-colors focus-visible:outline-none focus-visible:ring-0 ${
               active
-                ? "bg-[#0a0a0a] text-white"
+                ? "bg-primary text-primary-foreground"
                 : "border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--oa-paper-soft)] hover:text-foreground"
             }`}
             type="button"
           >
             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors ${
               active
-                ? "border-white/20 bg-white/10 text-white"
+                ? "border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"
                 : "border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--text-secondary)]"
             }`}>
               <ModelGlyph model={conversation.model} size={16} />

@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 type Tone = "blue" | "cyan" | "green" | "gold" | "plum" | "red";
 
 const toneClass: Record<Tone, string> = {
-  blue: "!border-[rgba(10,10,10,0.15)] !bg-[rgba(10,10,10,0.05)] !text-[var(--oa-ink)]",
-  cyan: "!border-[rgba(10,10,10,0.15)] !bg-[rgba(10,10,10,0.05)] !text-[var(--oa-ink)]",
+  blue: "!border-[var(--oa-control-hover-border)] !bg-[var(--primary-light)] !text-[var(--oa-ink)]",
+  cyan: "!border-[var(--oa-control-hover-border)] !bg-[var(--primary-light)] !text-[var(--oa-ink)]",
   green: "!border-[rgba(22,163,74,0.2)] !bg-[rgba(22,163,74,0.08)] !text-[var(--oa-green)]",
   gold: "!border-[rgba(202,138,4,0.2)] !bg-[rgba(202,138,4,0.08)] !text-[var(--oa-gold)]",
-  plum: "!border-[rgba(10,10,10,0.15)] !bg-[rgba(10,10,10,0.05)] !text-[var(--oa-ink)]",
+  plum: "!border-[var(--oa-control-hover-border)] !bg-[var(--primary-light)] !text-[var(--oa-ink)]",
   red: "!border-[rgba(220,38,38,0.2)] !bg-[rgba(220,38,38,0.08)] !text-[var(--oa-red)]"
 };
 

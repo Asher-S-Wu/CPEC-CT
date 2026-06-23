@@ -354,7 +354,7 @@ export default function MessageList({
                         ref={editTextareaRef}
                         value={editingContent}
                         onChange={(e) => onEditingContentChange(e.target.value)}
-                        className="block max-h-[45vh] w-full resize-none overflow-y-auto bg-transparent p-0 text-sm leading-6 text-white outline-none"
+                        className="block max-h-[45vh] w-full resize-none overflow-y-auto bg-transparent p-0 text-sm leading-6 text-primary-foreground outline-none"
                       />
                     </div>
                     <div className="flex gap-2">

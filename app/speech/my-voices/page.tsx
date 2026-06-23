@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm-provider';
+import { GridCardsLoading } from '@/components/layout/route-loading';
 import type { VoiceItem } from '@/types/audio/tts';
 
 export default function MyVoicesPage() {
@@ -164,9 +165,7 @@ export default function MyVoicesPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">
-          加载中...
-        </div>
+        <GridCardsLoading />
       ) : voices.length === 0 ? (
         <EmptyState
           icon={<Music className="h-6 w-6" />}

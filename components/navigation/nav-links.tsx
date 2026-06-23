@@ -41,8 +41,8 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
               className={cn(
                 "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors",
                 active
-                  ? "border border-[#0a0a0a] bg-[#0a0a0a] text-white"
-                  : "border border-[#e5e5e5] bg-white text-[#525252] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]"
+                  ? "border border-primary bg-primary text-primary-foreground"
+                  : "border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--oa-muted)] hover:bg-[var(--oa-paper-soft)] hover:text-[var(--oa-ink)]"
               )}
             >
               <span className="h-3.5 w-3.5 shrink-0">{item.icon}</span>
@@ -64,14 +64,14 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
           tone === "sidebar" && "app-sidebar-link",
           tone === "sidebar"
             ? active
-              ? "bg-[#0a0a0a] text-white"
+              ? "bg-[var(--oa-sidebar-text)] text-[var(--oa-sidebar-bg)]"
               : "text-[var(--oa-sidebar-item)] hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
             : tone === "dark"
             ? active
-              ? "bg-white text-[#0a0a0a]"
+              ? "bg-primary text-primary-foreground"
               : "text-white/70 hover:bg-white/10 hover:text-white"
             : active
-              ? "bg-[#0a0a0a] text-white"
+              ? "bg-primary text-primary-foreground"
               : "text-[var(--oa-muted)] hover:bg-[var(--oa-paper-soft)] hover:text-[var(--oa-ink)]"
         );
 

@@ -207,7 +207,7 @@ export default function SystemPromptModal({
                       <button onClick={() => setEditingId(null)} className="rounded-lg px-5 py-2.5 text-sm font-medium text-[var(--oa-muted)] transition-colors hover:bg-[var(--oa-paper-soft)] hover:text-[var(--oa-ink)]">
                         取消
                       </button>
-                      <button onClick={submitPreset} className="flex items-center gap-2 rounded-lg bg-[#0a0a0a] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#262626]">
+                      <button onClick={submitPreset} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                         <Check size={16} />
                         保存预设
                       </button>
@@ -243,7 +243,7 @@ export default function SystemPromptModal({
                     <button onClick={onClose} className="rounded-lg px-5 py-2.5 text-sm font-medium text-[var(--oa-muted)] transition-colors hover:bg-[var(--oa-paper-soft)] hover:text-[var(--oa-ink)]">
                       取消
                     </button>
-                    <button disabled={saving} onClick={handleSave} className="flex items-center gap-2 rounded-lg bg-[#0a0a0a] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#262626] disabled:opacity-50">
+                    <button disabled={saving} onClick={handleSave} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
                       <Check size={16} />
                       {saving ? "保存中..." : "应用配置"}
                     </button>

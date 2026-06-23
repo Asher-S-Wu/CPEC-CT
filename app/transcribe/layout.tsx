@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { ConsoleShell } from "@/components/layout/console-shell";
+import { ConsoleLoadingShell } from "@/components/layout/route-loading";
 import { Sidebar } from "@/components/transcribe/layout/transcribe-sidebar";
 import { requirePageSession } from "@/lib/auth";
 
-export default async function TranscribeLayout({ children }: { children: ReactNode }) {
+async function TranscribeLayoutContent({ children }: { children: ReactNode }) {
   const current = await requirePageSession();
 
   return (
@@ -13,5 +15,13 @@ export default async function TranscribeLayout({ children }: { children: ReactNo
         <div className="min-w-0">{children}</div>
       </div>
     </ConsoleShell>
+  );
+}
+
+export default function TranscribeLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<ConsoleLoadingShell variant="section" sectionItems={2} />}>
+      <TranscribeLayoutContent>{children}</TranscribeLayoutContent>
+    </Suspense>
   );
 }

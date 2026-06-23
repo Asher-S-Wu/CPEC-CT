@@ -31,8 +31,8 @@
 
 .ai-primary-action {
   border-color: transparent;
-  background: #0a0a0a;
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .ai-primary-action:hover:not(:disabled) {
@@ -40,9 +40,9 @@
 }
 
 .ai-primary-soft {
-  border-color: rgba(10, 10, 10, 0.12);
-  background: rgba(10, 10, 10, 0.06);
-  color: #0a0a0a;
+  border-color: var(--ai-accent-soft-border);
+  background: var(--ai-accent-soft);
+  color: var(--ai-accent-strong);
 }
 
 .ai-markdown {
@@ -56,7 +56,7 @@
 .ai-markdown :where(a) {
   color: var(--text-primary);
   text-decoration: underline;
-  text-decoration-color: rgba(10, 10, 10, 0.3);
+  text-decoration-color: var(--ai-accent-soft-border);
 }
 
 .ai-markdown :where(blockquote, table, th, td) {
@@ -440,8 +440,8 @@
 }
 
 /* Links */
-.prose a { color: var(--text-primary); text-decoration: underline; text-decoration-color: rgba(10, 10, 10, 0.3); }
-.prose a:hover { color: #0a0a0a; }
+.prose a { color: var(--text-primary); text-decoration: underline; text-decoration-color: var(--ai-accent-soft-border); }
+.prose a:hover { color: var(--ai-accent-strong); }
 
 /* Lists */
 .prose ul, .prose ol {
@@ -456,19 +456,19 @@
 
 /* ===== Message Bubbles ===== */
 .msg-bubble-user {
-  background: #0a0a0a;
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border-radius: 16px;
   padding: 0.95rem 1.1rem;
   border: 1px solid transparent;
 }
 
 .msg-bubble-ai {
-  background: #f5f5f5;
+  background: var(--ai-panel-muted);
   color: var(--text-primary);
   border-radius: 16px;
   padding: 0.9rem 1.05rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--ai-panel-border);
 }
 
 .msg-bubble-user .prose,
@@ -483,22 +483,22 @@
 .msg-bubble-user .prose h4,
 .msg-bubble-user .prose h5,
 .msg-bubble-user .prose h6 {
-  color: rgba(255, 255, 255, 0.96);
+  color: hsl(var(--primary-foreground) / 0.96);
 }
 
 .msg-bubble-user .prose :not(pre) > code {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: hsl(var(--primary-foreground) / 0.14);
+  color: hsl(var(--primary-foreground));
 }
 
 .msg-bubble-user .prose a {
-  color: rgba(255, 255, 255, 0.92);
-  text-decoration-color: rgba(255, 255, 255, 0.35);
+  color: hsl(var(--primary-foreground) / 0.92);
+  text-decoration-color: hsl(var(--primary-foreground) / 0.35);
 }
 
 .dark-mode .msg-bubble-ai {
-  background: #1a1a1a;
-  border-color: #262626;
+  background: var(--ai-panel-muted);
+  border-color: var(--ai-panel-border);
 }
 
 /* Input area wrapper */
@@ -606,7 +606,7 @@
 
 .dark-mode .ai-message-action:hover,
 .ai-shell.dark-mode .ai-message-action:hover {
-  background: #262626;
+  background: var(--oa-elevated);
 }
 
 /* Dark mode prose/markdown */
@@ -646,8 +646,8 @@
 }
 
 .dark-mode .msg-bubble-user .prose a {
-  color: rgba(255, 255, 255, 0.92);
-  text-decoration-color: rgba(255, 255, 255, 0.35);
+  color: hsl(var(--primary-foreground) / 0.92);
+  text-decoration-color: hsl(var(--primary-foreground) / 0.35);
 }
 
 

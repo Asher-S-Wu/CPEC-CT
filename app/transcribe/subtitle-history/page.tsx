@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useConfirm } from '@/components/ui/confirm-provider';
+import { ListCardsLoading } from '@/components/layout/route-loading';
 
 interface SubtitleHistoryItem {
   id: string;
@@ -168,9 +169,7 @@ export default function SubtitleHistoryPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">
-          加载中...
-        </div>
+        <ListCardsLoading />
       ) : history.length === 0 ? (
         <EmptyState
           icon={<Captions className="h-6 w-6" />}

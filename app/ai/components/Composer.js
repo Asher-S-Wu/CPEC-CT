@@ -459,7 +459,7 @@ export default function Composer({
                 disabled={sendDisabled}
                 className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
                   isStreaming || isWaitingForAI
-                    ? "bg-[#dc2626] text-white hover:bg-[#b91c1c]"
+                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     : "ai-primary-action"
                 } disabled:cursor-not-allowed disabled:border-[var(--oa-control-border)] disabled:bg-[var(--oa-paper-soft)] disabled:text-[var(--oa-muted)]`}
                 type="button"

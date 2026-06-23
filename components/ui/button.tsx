@@ -8,12 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[#0a0a0a] text-white hover:bg-[#262626]",
-        destructive: "bg-[#dc2626] text-white hover:bg-[#b91c1c]",
-        outline: "border border-[#e5e5e5] bg-white text-[#0a0a0a] hover:bg-[#0a0a0a] hover:text-white hover:border-[#0a0a0a]",
-        secondary: "border border-[#e5e5e5] bg-[#fafafa] text-[#0a0a0a] hover:bg-[#f0f0f0]",
-        ghost: "text-[#525252] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]",
-        link: "text-[#0a0a0a] underline-offset-4 hover:underline",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] text-[var(--oa-ink)] hover:border-[var(--oa-control-hover-border)] hover:bg-[var(--oa-paper-soft)]",
+        secondary: "border border-[var(--oa-control-border)] bg-[var(--oa-paper-soft)] text-[var(--oa-ink)] hover:bg-[var(--oa-card-bg)]",
+        ghost: "text-[var(--oa-muted)] hover:bg-[var(--oa-paper-soft)] hover:text-[var(--oa-ink)]",
+        link: "text-[var(--oa-ink)] underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",

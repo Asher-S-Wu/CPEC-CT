@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-
-function AuthLayoutFallback() {
-  return <div className="auth-shell" />;
-}
+import { AuthLoadingShell } from "@/components/layout/route-loading";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<AuthLayoutFallback />}>
+    <Suspense fallback={<AuthLoadingShell />}>
       <div className="auth-shell">{children}</div>
     </Suspense>
   );

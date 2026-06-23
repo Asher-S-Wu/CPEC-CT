@@ -115,9 +115,9 @@ export default function ConfirmModal({
                 <button
                   onClick={handleConfirm}
                   disabled={isProcessing}
-                  className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${danger
-                    ? "bg-[#dc2626] hover:bg-[#b91c1c]"
-                    : "bg-[#0a0a0a] hover:bg-[#262626]"
+                  className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${danger
+                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                     }`}
                 >
                   {confirmText}
