@@ -9,6 +9,7 @@ import {
 import { saveImageBuffer, saveMediaFromUrl } from "@/lib/media/storage";
 
 const PENDING_STATUSES = new Set(["queued", "running"]);
+const VIDEO_SUBMIT_TIMEOUT_MS = 10 * 60 * 1000;
 
 async function fileToPublicImageUrl(file?: File) {
   if (!file) return "";
@@ -94,6 +95,7 @@ export async function submitVideoGeneration({
     },
     signal,
     serviceName: "视频",
+    timeoutMs: VIDEO_SUBMIT_TIMEOUT_MS,
   });
 
   const taskId = typeof data?.id === "string" ? data.id.trim() : "";

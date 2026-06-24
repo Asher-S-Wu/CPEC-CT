@@ -14,6 +14,8 @@ import {
 } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
+export const runtime = "nodejs";
+
 const ALLOWED_ASPECT_RATIOS = new Set<string>(VIDEO_ASPECT_RATIO_OPTIONS.map((item) => item.id));
 const ALLOWED_DURATIONS = new Set<number>(VIDEO_DURATION_OPTIONS.map((item) => item.id));
 const ALLOWED_RESOLUTIONS = new Set<string>(VIDEO_RESOLUTION_OPTIONS.map((item) => item.id));
@@ -107,7 +109,6 @@ export async function POST(request: NextRequest) {
       durationSeconds: durationSeconds as VideoDuration,
       resolution: resolution as VideoResolution,
       generateAudio,
-      signal: request.signal,
     });
 
     return NextResponse.json({ success: true, operationName });

@@ -3,6 +3,8 @@ import { getSession } from "@/lib/audio/auth/session";
 import { fetchAndStoreVideoGenerationResult } from "@/lib/media/server/ark/videos";
 import { logError } from "@/lib/logger";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession(request);

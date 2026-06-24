@@ -37,7 +37,10 @@ function normalizeArkRequestError(error: unknown, serviceName: string) {
   const code = getErrorCode(error);
   const message = error instanceof Error ? error.message : "";
 
-  if (message === `${serviceName}服务连接超时，请稍后再试`) {
+  if (
+    message === `${serviceName}服务连接超时，请稍后再试` ||
+    message.startsWith(`${serviceName}服务响应超时`)
+  ) {
     return new Error(message, { cause: error });
   }
 
@@ -55,6 +58,7 @@ export function requestArkJson({
   body,
   signal,
   serviceName,
+  timeoutMs = ARK_SERVICE_TIMEOUT_MS,
 }: {
   url: string;
   apiKey: string;
@@ -62,9 +66,11 @@ export function requestArkJson({
   body?: Record<string, unknown>;
   signal?: AbortSignal;
   serviceName: string;
+  timeoutMs?: number;
 }) {
   const payload = body ? JSON.stringify(body) : "";
   const endpoint = new URL(url);
+  const startedAt = Date.now();
 
   return new Promise<any>((resolve, reject) => {
     if (signal?.aborted) {
@@ -137,8 +143,9 @@ export function requestArkJson({
 
     request.on("error", fail);
 
-    request.setTimeout(ARK_SERVICE_TIMEOUT_MS, () => {
-      fail(new Error(`${serviceName}服务响应超时，请稍后再试`));
+    request.setTimeout(timeoutMs, () => {
+      const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      fail(new Error(`${serviceName}服务响应超时（已等待 ${elapsedSeconds} 秒），请稍后再试`));
       request.destroy();
     });
 
