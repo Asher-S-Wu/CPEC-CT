@@ -4,7 +4,6 @@ import { getAuthPayload } from "@/lib/ai/auth";
 import { rateLimit, getClientIP } from "@/lib/ai/rateLimit";
 import {
   getModelConfig,
-  isArkChatModel,
   isPrimaryChatModelId,
   isZenMuxChatModel,
 } from "@/lib/ai/shared/models";
@@ -42,10 +41,6 @@ import {
   normalizeOpenAIError,
 } from "@/lib/ai/server/zenmux/openai";
 import {
-  buildArkChatCompletionsRequest,
-  createArkOpenAIClient,
-} from "@/lib/ai/server/ark/openai";
-import {
   executeTavilyChatTool,
   TAVILY_CHAT_TOOLS,
 } from "@/lib/ai/server/chat/tavilyTools";
@@ -65,70 +60,12 @@ import { logError } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function pickStringField(source, name) {
-  return typeof source?.[name] === "string" && source[name].trim() ? source[name] : "";
-}
-
-function extractArkThinkingState(source) {
-  if (!source || typeof source !== "object") return null;
-  const state = {};
-  const reasoningContent = pickStringField(source, "reasoning_content");
-  const encryptedContent = pickStringField(source, "encrypted_content");
-
-  if (reasoningContent) state.reasoning_content = reasoningContent;
-  if (encryptedContent) state.encrypted_content = encryptedContent;
-  if (Array.isArray(source.reasoning_details) && source.reasoning_details.length > 0) {
-    state.reasoning_details = source.reasoning_details;
-  }
-
-  return Object.keys(state).length > 0 ? state : null;
-}
-
-function mergeArkThinkingState(current, source, { appendReasoningContent = false } = {}) {
-  const next = extractArkThinkingState(source);
-  if (!next) return current;
-  const merged = { ...(current || {}) };
-  if (typeof next.reasoning_content === "string") {
-    merged.reasoning_content = appendReasoningContent
-      ? `${merged.reasoning_content || ""}${next.reasoning_content}`
-      : next.reasoning_content;
-  }
-  if (typeof next.encrypted_content === "string") {
-    merged.encrypted_content = next.encrypted_content;
-  }
-  if (Array.isArray(next.reasoning_details)) {
-    merged.reasoning_details = next.reasoning_details;
-  }
-  return Object.keys(merged).length > 0 ? merged : current;
-}
-
-function addArkThinkingFields(message, thinkingState) {
-  if (!thinkingState || typeof thinkingState !== "object") return message;
-  return {
-    ...message,
-    ...(typeof thinkingState.reasoning_content === "string"
-      ? { reasoning_content: thinkingState.reasoning_content }
-      : {}),
-    ...(typeof thinkingState.encrypted_content === "string"
-      ? { encrypted_content: thinkingState.encrypted_content }
-      : {}),
-    ...(Array.isArray(thinkingState.reasoning_details)
-      ? { reasoning_details: thinkingState.reasoning_details }
-      : {}),
-  };
-}
-
-function buildChatProviderState({ provider, completionId, usage, arkThinkingState }) {
+function buildChatProviderState({ completionId, usage }) {
   const state = {};
   if (typeof completionId === "string" && completionId.trim()) state.completionId = completionId.trim();
   if (usage && typeof usage === "object" && !Array.isArray(usage)) state.usage = usage;
-  if (provider === "ark" && arkThinkingState && typeof arkThinkingState === "object") {
-    state.thinking = arkThinkingState;
-  }
   if (Object.keys(state).length === 0) return undefined;
-  return provider === "ark"
-    ? { arkChatCompletions: state }
-    : { zenmuxChatCompletions: state };
+  return { zenmuxChatCompletions: state };
 }
 
 export async function POST(req) {
@@ -164,13 +101,12 @@ export async function POST(req) {
       return Response.json({ error: "unsupported model" }, { status: 400 });
     }
 
-    const usesArk = isArkChatModel(model);
     const usesZenMux = isZenMuxChatModel(model);
-    if (!usesArk && !usesZenMux) {
+    if (!usesZenMux) {
       return Response.json({ error: "unsupported model" }, { status: 400 });
     }
-    providerLogScope = usesArk ? "ai.ark" : "ai.zenmux";
-    providerDisplayName = usesArk ? "火山方舟" : "ZenMux";
+    providerLogScope = "ai.zenmux";
+    providerDisplayName = "ZenMux";
 
     const auth = await getAuthPayload();
     if (!auth) {
@@ -211,9 +147,7 @@ export async function POST(req) {
     let previousMessages = Array.isArray(currentConversation?.messages) ? currentConversation.messages : [];
     let previousUpdatedAt = currentConversation?.updatedAt ? new Date(currentConversation.updatedAt) : new Date();
 
-    const openAIClient = usesArk ? createArkOpenAIClient() : createZenMuxOpenAIClient();
-    const buildProviderRequest = usesArk ? buildArkChatCompletionsRequest : buildChatCompletionsRequest;
-    const providerStateKey = usesArk ? "ark" : "zenmux";
+    const openAIClient = createZenMuxOpenAIClient();
     const apiModel = model;
 
     const currentAttachments = Array.isArray(config?.attachments)
@@ -375,7 +309,6 @@ export async function POST(req) {
         let finalCitations = [];
         let finalTools = [];
         let searchContextTokens = 0;
-        let arkThinkingState = null;
 
         const rollbackCurrentTurn = async () => {
           if (finalMessagePersisted) return;
@@ -420,7 +353,7 @@ export async function POST(req) {
 
             while (toolCallsUsed < 5 && !terminalResponse) {
               const toolResponse = await openAIClient.chat.completions.create(
-                buildProviderRequest({
+                buildChatCompletionsRequest({
                   model: apiModel,
                   messages: responseMessages,
                   system: systemPrompt,
@@ -439,10 +372,6 @@ export async function POST(req) {
               if (toolUsage) finalUsage = toolUsage;
 
               const assistantMessage = getChatCompletionMessage(toolResponse);
-              const assistantArkThinkingState = usesArk ? extractArkThinkingState(assistantMessage) : null;
-              if (usesArk) {
-                arkThinkingState = mergeArkThinkingState(arkThinkingState, assistantMessage);
-              }
               const calls = getChatCompletionToolCalls(toolResponse);
               const reasoningText = typeof assistantMessage?.reasoning === "string"
                 ? assistantMessage.reasoning
@@ -470,9 +399,7 @@ export async function POST(req) {
                   ? { reasoning_details: assistantMessage.reasoning_details }
                   : {}),
               };
-              responseMessages.push(usesArk
-                ? addArkThinkingFields(assistantToolMessage, assistantArkThinkingState)
-                : assistantToolMessage);
+              responseMessages.push(assistantToolMessage);
 
               for (const call of calls) {
                 if (toolCallsUsed >= 5) {
@@ -548,9 +475,6 @@ export async function POST(req) {
           }
 
           if (terminalResponse) {
-            if (usesArk) {
-              arkThinkingState = mergeArkThinkingState(arkThinkingState, getChatCompletionMessage(terminalResponse));
-            }
             const answer = getChatCompletionOutputText(terminalResponse);
             if (!answer) {
               throw new Error("模型完成联网后没有返回答案");
@@ -559,7 +483,7 @@ export async function POST(req) {
             sendEvent({ type: "text", content: answer });
           } else {
             const stream = await openAIClient.chat.completions.create(
-              buildProviderRequest({
+              buildChatCompletionsRequest({
                 model: apiModel,
                 messages: responseMessages,
                 system: systemPrompt,
@@ -577,9 +501,6 @@ export async function POST(req) {
               }
 
               const delta = getChatCompletionChunkDelta(chunk);
-              if (usesArk) {
-                arkThinkingState = mergeArkThinkingState(arkThinkingState, delta, { appendReasoningContent: true });
-              }
               const textDelta = typeof delta?.content === "string" ? delta.content : "";
               if (textDelta) {
                 fullText += textDelta;
@@ -615,10 +536,8 @@ export async function POST(req) {
 
           if (user && currentConversationId) {
             const providerState = buildChatProviderState({
-              provider: providerStateKey,
               completionId: finalCompletionId,
               usage: finalUsage,
-              arkThinkingState,
             });
             const modelMessage = {
               id: resolvedModelMessageId,

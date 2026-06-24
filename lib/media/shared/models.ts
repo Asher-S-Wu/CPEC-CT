@@ -1,8 +1,8 @@
-export const IMAGE_MODEL = "doubao-seedream-5-0-lite-260128";
-export const VIDEO_MODEL = "doubao-seedance-2-0-fast-260128";
+export const IMAGE_MODEL = "bytedance/doubao-seedream-5.0-lite";
+export const VIDEO_MODEL = "bytedance/doubao-seedance-2.0";
 
 export const IMAGE_MODEL_NAME = "Doubao Seedream 5.0 Lite";
-export const VIDEO_MODEL_NAME = "Doubao Seedance 2.0 Fast";
+export const VIDEO_MODEL_NAME = "Doubao Seedance 2.0";
 export const IMAGE_PROMPT_MAX_LENGTH = 32000;
 export const IMAGE_EDIT_MAX_BYTES = 25 * 1024 * 1024;
 export const IMAGE_EDIT_ACCEPTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { submitVideoGeneration } from "@/lib/media/server/ark/videos";
+import { submitVideoGeneration } from "@/lib/media/server/zenmux/videos";
 import {
   VIDEO_ASPECT_RATIO_OPTIONS,
   VIDEO_DURATION_OPTIONS,

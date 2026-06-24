@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { editAndStoreImage } from "@/lib/media/server/ark/images";
+import { editAndStoreImage } from "@/lib/media/server/zenmux/images";
 import {
   IMAGE_EDIT_ACCEPTED_MIME_TYPES,
   IMAGE_EDIT_MAX_BYTES,

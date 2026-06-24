@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { generateAndStoreImage } from "@/lib/media/server/ark/images";
+import { generateAndStoreImage } from "@/lib/media/server/zenmux/images";
 import { IMAGE_PROMPT_MAX_LENGTH, IMAGE_SIZE_OPTIONS, type ImageSize } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 

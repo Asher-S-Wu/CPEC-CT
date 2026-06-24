@@ -50,27 +50,6 @@ function normalizeOpenAIMessageContent(contentParts) {
   return contentParts;
 }
 
-function getArkThinkingState(message) {
-  const thinking = message?.providerState?.arkChatCompletions?.thinking;
-  return thinking && typeof thinking === "object" && !Array.isArray(thinking) ? thinking : null;
-}
-
-function addArkThinkingFields(message, thinking) {
-  if (!thinking) return message;
-  return {
-    ...message,
-    ...(typeof thinking.reasoning_content === "string"
-      ? { reasoning_content: thinking.reasoning_content }
-      : {}),
-    ...(typeof thinking.encrypted_content === "string"
-      ? { encrypted_content: thinking.encrypted_content }
-      : {}),
-    ...(Array.isArray(thinking.reasoning_details)
-      ? { reasoning_details: thinking.reasoning_details }
-      : {}),
-  };
-}
-
 export async function buildChatMessagesFromHistory(messages, options = {}) {
   const result = [];
   for (const msg of messages) {
@@ -79,10 +58,10 @@ export async function buildChatMessagesFromHistory(messages, options = {}) {
     const role = msg.role === "model" ? "assistant" : "user";
 
     if (role === "assistant" && isNonEmptyString(msg?.content)) {
-      result.push(addArkThinkingFields({
+      result.push({
         role,
         content: msg.content,
-      }, getArkThinkingState(msg)));
+      });
       continue;
     }
 
