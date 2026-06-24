@@ -234,7 +234,7 @@ export default function TTSHistoryPage() {
           title="还没有生成记录"
           description="前往文本转语音页面生成您的第一个音频。"
           action={<Button asChild>
-            <Link href="/speech/text-to-speech">
+            <Link href="/speech/text-to-speech" prefetch={false}>
               前往文本转语音
             </Link>
           </Button>}

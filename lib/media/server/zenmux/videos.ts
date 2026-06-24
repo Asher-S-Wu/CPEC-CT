@@ -10,18 +10,6 @@ import {
 import { saveMediaFromUrl, saveVideoBuffer } from "@/lib/media/storage";
 
 const ZENMUX_VERTEX_BASE_URL = "https://zenmux.ai/api/vertex-ai/v1";
-const POLL_INTERVAL_MS = 15_000;
-const MAX_POLL_ATTEMPTS = 40;
-
-function sleep(ms: number, signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject(new Error("请求已取消"));
-    }, { once: true });
-  });
-}
 
 function getAuthHeaders(apiKey: string) {
   return {
@@ -73,7 +61,52 @@ async function fileToVertexImage(file?: File) {
   };
 }
 
-export async function generateAndStoreVideo({
+function getVideoModelUrls() {
+  const { provider, model } = parseModelSlug(VIDEO_MODEL);
+  return {
+    submitUrl: `${ZENMUX_VERTEX_BASE_URL}/publishers/${provider}/models/${model}:predictLongRunning`,
+    pollUrl: `${ZENMUX_VERTEX_BASE_URL}/publishers/${provider}/models/${model}:fetchPredictOperation`,
+  };
+}
+
+async function storeCompletedVideo(latestOperation: Record<string, unknown>) {
+  if (latestOperation.error) {
+    const message = typeof latestOperation.error === "object" &&
+      latestOperation.error &&
+      typeof (latestOperation.error as { message?: string }).message === "string"
+      ? (latestOperation.error as { message: string }).message
+      : "视频生成失败";
+    throw new Error(message);
+  }
+
+  const raiMediaFilteredCount = Number((latestOperation.response as Record<string, unknown> | undefined)?.raiMediaFilteredCount);
+  if (Number.isFinite(raiMediaFilteredCount) && raiMediaFilteredCount > 0) {
+    const reasons = (latestOperation.response as { raiMediaFilteredReasons?: unknown[] } | undefined)?.raiMediaFilteredReasons;
+    const reasonText = Array.isArray(reasons) ? reasons.map((item) => String(item)).filter(Boolean).join("；") : "";
+    throw new Error(reasonText || "视频内容未通过安全审核");
+  }
+
+  const response = latestOperation.response;
+  if (!response || typeof response !== "object") {
+    throw new Error("视频生成失败，未返回有效结果");
+  }
+
+  const { gcsUri, bytesBase64Encoded, mimeType } = extractVideoPayload(response as Record<string, unknown>);
+
+  if (bytesBase64Encoded) {
+    const saved = await saveVideoBuffer(Buffer.from(bytesBase64Encoded, "base64"), mimeType);
+    return saved.url;
+  }
+
+  if (gcsUri) {
+    const saved = await saveMediaFromUrl(gcsUri, mimeType, "media-video");
+    return saved.url;
+  }
+
+  throw new Error("视频生成失败，未返回可下载内容");
+}
+
+export async function submitVideoGeneration({
   prompt,
   image,
   lastFrame,
@@ -105,9 +138,7 @@ export async function generateAndStoreVideo({
   signal?: AbortSignal;
 }) {
   const { apiKey } = resolveZenMuxProviderConfig();
-  const { provider, model } = parseModelSlug(VIDEO_MODEL);
-  const submitUrl = `${ZENMUX_VERTEX_BASE_URL}/publishers/${provider}/models/${model}:predictLongRunning`;
-  const pollUrl = `${ZENMUX_VERTEX_BASE_URL}/publishers/${provider}/models/${model}:fetchPredictOperation`;
+  const { submitUrl } = getVideoModelUrls();
   const instance: Record<string, unknown> = {
     prompt,
   };
@@ -165,61 +196,30 @@ export async function generateAndStoreVideo({
     throw new Error("视频生成任务提交失败");
   }
 
-  let latestOperation: Record<string, unknown> = submitData;
+  return { operationName };
+}
 
-  for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
-    if (latestOperation.done === true) {
-      break;
-    }
+export async function fetchAndStoreVideoGenerationResult({
+  operationName,
+  signal,
+}: {
+  operationName: string;
+  signal?: AbortSignal;
+}) {
+  const { apiKey } = resolveZenMuxProviderConfig();
+  const { pollUrl } = getVideoModelUrls();
+  const pollResponse = await fetch(pollUrl, {
+    method: "POST",
+    headers: getAuthHeaders(apiKey),
+    body: JSON.stringify({ operationName }),
+    signal,
+  });
 
-    await sleep(POLL_INTERVAL_MS, signal);
-
-    const pollResponse = await fetch(pollUrl, {
-      method: "POST",
-      headers: getAuthHeaders(apiKey),
-      body: JSON.stringify({ operationName }),
-      signal,
-    });
-
-    latestOperation = await readJsonResponse(pollResponse);
-  }
-
+  const latestOperation = await readJsonResponse(pollResponse);
   if (latestOperation.done !== true) {
-    throw new Error("视频生成超时，请稍后再试");
+    return { done: false as const };
   }
 
-  if (latestOperation.error) {
-    const message = typeof latestOperation.error === "object" &&
-      latestOperation.error &&
-      typeof (latestOperation.error as { message?: string }).message === "string"
-      ? (latestOperation.error as { message: string }).message
-      : "视频生成失败";
-    throw new Error(message);
-  }
-
-  const raiMediaFilteredCount = Number((latestOperation.response as Record<string, unknown> | undefined)?.raiMediaFilteredCount);
-  if (Number.isFinite(raiMediaFilteredCount) && raiMediaFilteredCount > 0) {
-    const reasons = (latestOperation.response as { raiMediaFilteredReasons?: unknown[] } | undefined)?.raiMediaFilteredReasons;
-    const reasonText = Array.isArray(reasons) ? reasons.map((item) => String(item)).filter(Boolean).join("；") : "";
-    throw new Error(reasonText || "视频内容未通过安全审核");
-  }
-
-  const response = latestOperation.response;
-  if (!response || typeof response !== "object") {
-    throw new Error("视频生成失败，未返回有效结果");
-  }
-
-  const { gcsUri, bytesBase64Encoded, mimeType } = extractVideoPayload(response as Record<string, unknown>);
-
-  if (bytesBase64Encoded) {
-    const saved = await saveVideoBuffer(Buffer.from(bytesBase64Encoded, "base64"), mimeType);
-    return saved.url;
-  }
-
-  if (gcsUri) {
-    const saved = await saveMediaFromUrl(gcsUri, mimeType, "media-video");
-    return saved.url;
-  }
-
-  throw new Error("视频生成失败，未返回可下载内容");
+  const videoUrl = await storeCompletedVideo(latestOperation);
+  return { done: true as const, videoUrl };
 }

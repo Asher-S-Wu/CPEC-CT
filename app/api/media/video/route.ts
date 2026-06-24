@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { generateAndStoreVideo } from "@/lib/media/server/zenmux/videos";
+import { submitVideoGeneration } from "@/lib/media/server/zenmux/videos";
 import {
   VIDEO_ASPECT_RATIO_OPTIONS,
   VIDEO_DURATION_OPTIONS,
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: lastFrameError }, { status: 400 });
     }
 
-    const videoUrl = await generateAndStoreVideo({
+    const { operationName } = await submitVideoGeneration({
       prompt,
       image: image || undefined,
       lastFrame: lastFrame || undefined,
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       signal: request.signal,
     });
 
-    return NextResponse.json({ success: true, videoUrl });
+    return NextResponse.json({ success: true, operationName });
   } catch (error) {
     logError("media.video", "generate video", error);
     return NextResponse.json(

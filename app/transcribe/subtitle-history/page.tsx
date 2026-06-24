@@ -176,7 +176,7 @@ export default function SubtitleHistoryPage() {
           title="还没有识别记录"
           description="前往录音识别页面识别您的第一个文件。"
           action={<Button asChild>
-            <Link href="/transcribe/subtitle-recognition">
+            <Link href="/transcribe/subtitle-recognition" prefetch={false}>
               前往录音识别
             </Link>
           </Button>}

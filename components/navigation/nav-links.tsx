@@ -37,6 +37,7 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
             <Link
               key={item.href}
               href={item.href as Route}
+              prefetch={false}
               onClick={onNavigate}
               className={cn(
                 "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors",
@@ -87,7 +88,7 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
         }
 
         return (
-          <Link key={item.href} href={item.href as Route} onClick={onNavigate} className={itemClassName} title={collapsed ? item.label : undefined}>
+          <Link key={item.href} href={item.href as Route} prefetch={false} onClick={onNavigate} className={itemClassName} title={collapsed ? item.label : undefined}>
             <span className={cn("grid h-5 w-5 flex-shrink-0 place-items-center transition-opacity", active ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
               {item.icon}
             </span>

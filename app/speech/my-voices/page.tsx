@@ -172,7 +172,7 @@ export default function MyVoicesPage() {
           title="还没有创建任何声音"
           description="前往声音克隆页面创建您的第一个声音。"
           action={<Button asChild>
-            <Link href="/speech/voice-clone">
+            <Link href="/speech/voice-clone" prefetch={false}>
               前往声音克隆
             </Link>
           </Button>}
