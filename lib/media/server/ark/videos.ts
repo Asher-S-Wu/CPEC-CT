@@ -1,4 +1,5 @@
 import { resolveArkProviderConfig } from "@/lib/ai/modelRoutes";
+import { requestArkJson } from "@/lib/media/server/ark/http";
 import {
   VIDEO_MODEL,
   type VideoAspectRatio,
@@ -8,24 +9,6 @@ import {
 import { saveMediaFromUrl } from "@/lib/media/storage";
 
 const PENDING_STATUSES = new Set(["queued", "running"]);
-
-function getAuthHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
-}
-
-async function readJsonResponse(response: Response) {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = typeof data?.error?.message === "string"
-      ? data.error.message
-      : (typeof data?.message === "string" ? data.message : `视频服务请求失败（${response.status}）`);
-    throw new Error(message);
-  }
-  return data;
-}
 
 async function fileToDataUrl(file?: File) {
   if (!file) return "";
@@ -98,10 +81,10 @@ export async function submitVideoGeneration({
   signal?: AbortSignal;
 }) {
   const { apiKey, openAIBaseUrl } = resolveArkProviderConfig();
-  const response = await fetch(`${openAIBaseUrl}/contents/generations/tasks`, {
-    method: "POST",
-    headers: getAuthHeaders(apiKey),
-    body: JSON.stringify({
+  const data = await requestArkJson({
+    url: `${openAIBaseUrl}/contents/generations/tasks`,
+    apiKey,
+    body: {
       model: VIDEO_MODEL,
       content: await buildVideoContent({ prompt, image, lastFrame }),
       ratio: aspectRatio,
@@ -109,11 +92,11 @@ export async function submitVideoGeneration({
       resolution,
       generate_audio: generateAudio,
       watermark: false,
-    }),
+    },
     signal,
+    serviceName: "视频",
   });
 
-  const data = await readJsonResponse(response);
   const taskId = typeof data?.id === "string" ? data.id.trim() : "";
   if (!taskId) {
     throw new Error("视频生成任务提交失败");
@@ -131,13 +114,14 @@ export async function fetchAndStoreVideoGenerationResult({
 }) {
   const { apiKey, openAIBaseUrl } = resolveArkProviderConfig();
   const taskId = encodeURIComponent(operationName);
-  const response = await fetch(`${openAIBaseUrl}/contents/generations/tasks/${taskId}`, {
+  const task = await requestArkJson({
+    url: `${openAIBaseUrl}/contents/generations/tasks/${taskId}`,
+    apiKey,
     method: "GET",
-    headers: getAuthHeaders(apiKey),
     signal,
+    serviceName: "视频",
   });
 
-  const task = await readJsonResponse(response);
   const status = typeof task?.status === "string" ? task.status : "";
 
   if (PENDING_STATUSES.has(status)) {

@@ -1,152 +1,7 @@
-import { request as httpsRequest } from "node:https";
 import { resolveArkProviderConfig } from "@/lib/ai/modelRoutes";
+import { requestArkJson } from "@/lib/media/server/ark/http";
 import { IMAGE_MODEL, type ImageSize } from "@/lib/media/shared/models";
 import { saveImageBuffer, saveMediaFromUrl } from "@/lib/media/storage";
-
-const IMAGE_SERVICE_TIMEOUT_MS = 180_000;
-
-function getAuthHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
-}
-
-function readJsonResponse(statusCode: number, data: any) {
-  if (statusCode < 200 || statusCode >= 300) {
-    const message = typeof data?.error?.message === "string"
-      ? data.error.message
-      : (typeof data?.message === "string" ? data.message : `图片服务请求失败（${statusCode}）`);
-    throw new Error(message);
-  }
-  return data;
-}
-
-function getErrorCode(error: unknown) {
-  if (typeof error === "object" && error && "code" in error) {
-    const code = (error as { code?: unknown }).code;
-    return typeof code === "string" ? code : "";
-  }
-  return "";
-}
-
-function normalizeArkRequestError(error: unknown) {
-  if (error instanceof Error && error.message === "图片处理已取消") {
-    return error;
-  }
-
-  const code = getErrorCode(error);
-  const message = error instanceof Error ? error.message : "";
-
-  if (message === "图片服务连接超时，请稍后再试") {
-    return new Error(message, { cause: error });
-  }
-
-  if (["ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT"].includes(code)) {
-    return new Error("图片服务网络连接失败，请稍后再试", { cause: error });
-  }
-
-  return new Error("图片服务请求失败，请稍后再试", { cause: error });
-}
-
-function postArkJson({
-  url,
-  apiKey,
-  body,
-  signal,
-}: {
-  url: string;
-  apiKey: string;
-  body: Record<string, unknown>;
-  signal?: AbortSignal;
-}) {
-  const payload = JSON.stringify(body);
-  const endpoint = new URL(url);
-
-  return new Promise<any>((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new Error("图片处理已取消"));
-      return;
-    }
-
-    let finished = false;
-    let request: ReturnType<typeof httpsRequest>;
-    const cleanup = () => {
-      finished = true;
-      signal?.removeEventListener("abort", handleAbort);
-    };
-    const fail = (error: unknown) => {
-      if (finished) return;
-      cleanup();
-      reject(error);
-    };
-    const handleAbort = () => {
-      fail(new Error("图片处理已取消"));
-      request.destroy();
-    };
-
-    request = httpsRequest(
-      {
-        method: "POST",
-        protocol: endpoint.protocol,
-        hostname: endpoint.hostname,
-        port: endpoint.port,
-        path: `${endpoint.pathname}${endpoint.search}`,
-        headers: {
-          ...getAuthHeaders(apiKey),
-          "Content-Length": Buffer.byteLength(payload),
-        },
-      },
-      (response) => {
-        const chunks: Buffer[] = [];
-
-        response.on("data", (chunk) => {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        });
-
-        response.on("error", (error) => {
-          fail(normalizeArkRequestError(error));
-        });
-
-        response.on("end", () => {
-          if (finished) return;
-          cleanup();
-
-          const text = Buffer.concat(chunks).toString("utf8");
-          let data: any = {};
-
-          if (text.trim()) {
-            try {
-              data = JSON.parse(text);
-            } catch (error) {
-              reject(new Error("图片服务返回内容解析失败", { cause: error }));
-              return;
-            }
-          }
-
-          try {
-            resolve(readJsonResponse(response.statusCode || 0, data));
-          } catch (error) {
-            reject(error);
-          }
-        });
-      }
-    );
-
-    request.on("error", (error) => {
-      fail(normalizeArkRequestError(error));
-    });
-
-    request.setTimeout(IMAGE_SERVICE_TIMEOUT_MS, () => {
-      fail(new Error("图片服务连接超时，请稍后再试"));
-      request.destroy();
-    });
-
-    signal?.addEventListener("abort", handleAbort, { once: true });
-    request.write(payload);
-    request.end();
-  });
-}
 
 async function fileToDataUrl(file: File) {
   const mimeType = file.type || "image/png";
@@ -182,7 +37,7 @@ export async function generateAndStoreImage({
   signal?: AbortSignal;
 }) {
   const { apiKey, openAIBaseUrl } = resolveArkProviderConfig();
-  const response = await postArkJson({
+  const response = await requestArkJson({
     url: `${openAIBaseUrl}/images/generations`,
     apiKey,
     body: {
@@ -193,6 +48,7 @@ export async function generateAndStoreImage({
       watermark: false,
     },
     signal,
+    serviceName: "图片",
   });
 
   return saveImageResult(response);
@@ -210,7 +66,7 @@ export async function editAndStoreImage({
   signal?: AbortSignal;
 }) {
   const { apiKey, openAIBaseUrl } = resolveArkProviderConfig();
-  const response = await postArkJson({
+  const response = await requestArkJson({
     url: `${openAIBaseUrl}/images/generations`,
     apiKey,
     body: {
@@ -222,6 +78,7 @@ export async function editAndStoreImage({
       watermark: false,
     },
     signal,
+    serviceName: "图片",
   });
 
   return saveImageResult(response);
