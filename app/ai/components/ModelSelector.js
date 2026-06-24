@@ -100,7 +100,7 @@ export default function ModelSelector({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="ai-shell ai-floating-panel fixed z-[61] rounded-xl p-2"
-                style={{ ...menuStyle, borderColor: "var(--oa-border)" }}
+                style={{ ...menuStyle, position: "fixed", borderColor: "var(--oa-border)" }}
               >
                 <div className="overflow-y-auto pr-1 mobile-scroll custom-scrollbar" style={{ maxHeight: menuStyle.maxHeight }}>
                   {Array.from(groupedModels.entries()).map(([provider, items], groupIdx) => (
