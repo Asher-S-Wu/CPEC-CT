@@ -27,13 +27,24 @@ export default function ModelSelector({
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current || typeof window === "undefined") return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const width = Math.min(window.innerWidth - 24, 260);
-    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
-    const bottom = Math.max(12, window.innerHeight - rect.top + 8);
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
+    const viewportWidth = window.visualViewport?.width || window.innerWidth;
+    const viewportOffsetLeft = window.visualViewport?.offsetLeft || 0;
+    const gap = 8;
+    const padding = 12;
+    const width = Math.min(viewportWidth - padding * 2, 260);
+    const left = Math.min(
+      Math.max(viewportOffsetLeft + padding, rect.left + viewportOffsetLeft),
+      viewportOffsetLeft + viewportWidth - width - padding
+    );
+    const spaceAbove = rect.top - padding;
+    const maxHeight = Math.min(420, Math.max(spaceAbove - gap, 180));
     setMenuStyle({
       left: `${left}px`,
-      bottom: `${bottom}px`,
+      bottom: `${viewportHeight + viewportOffsetTop - rect.top + gap}px`,
       width: `${width}px`,
+      maxHeight: `${maxHeight}px`,
     });
   }, []);
 
@@ -90,7 +101,7 @@ export default function ModelSelector({
                 className="ai-shell ai-floating-panel fixed z-[61] rounded-xl p-2"
                 style={{ ...menuStyle, borderColor: "var(--oa-border)" }}
               >
-                <div className="max-h-[420px] overflow-y-auto pr-1 mobile-scroll custom-scrollbar">
+                <div className="overflow-y-auto pr-1 mobile-scroll custom-scrollbar" style={{ maxHeight: menuStyle.maxHeight }}>
                   {Array.from(groupedModels.entries()).map(([provider, items], groupIdx) => (
                     <div key={provider}>
                       {groupIdx > 0 ? (
