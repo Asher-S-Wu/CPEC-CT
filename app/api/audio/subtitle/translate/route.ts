@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
-import { GLM_MODEL } from '@/lib/ai/shared/models';
+import { DOUBAO_SEED_MODEL } from '@/lib/ai/shared/models';
 import { requestZenMuxChatCompletion } from '@/lib/ai/server/zenmux/openai';
 import { logError } from '@/lib/logger';
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     ].join('\n');
 
     const resultText = await requestZenMuxChatCompletion({
-      model: GLM_MODEL,
+      model: DOUBAO_SEED_MODEL,
       prompt,
       signal: request?.signal,
       reasoningEffort: 'high',
