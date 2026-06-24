@@ -10,7 +10,7 @@ import { editImage, generateImage } from '@/lib/media/client/media';
 import {
   IMAGE_EDIT_ACCEPTED_MIME_TYPES,
   IMAGE_EDIT_MAX_BYTES,
-  IMAGE_ICON_URL,
+  IMAGE_MODEL_ICON_URL,
   IMAGE_MODEL_NAME,
   IMAGE_PROMPT_MAX_LENGTH,
   IMAGE_SIZE_OPTIONS,
@@ -22,7 +22,7 @@ type ImageMode = 'generate' | 'edit';
 export default function ImageGenerationPage() {
   const [mode, setMode] = useState<ImageMode>('generate');
   const [prompt, setPrompt] = useState('');
-  const [size, setSize] = useState<ImageSize>('1920x1920');
+  const [size, setSize] = useState<ImageSize>('2048*2048');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -79,12 +79,12 @@ export default function ImageGenerationPage() {
       }
 
       if (!IMAGE_EDIT_ACCEPTED_MIME_TYPES.includes(sourceImage.type as typeof IMAGE_EDIT_ACCEPTED_MIME_TYPES[number])) {
-        setError('仅支持 PNG、JPG、WEBP 图片');
+        setError('仅支持 JPG、JPEG、PNG、BMP、TIFF、WEBP、GIF 图片');
         return;
       }
 
-      if (sourceImage.size > IMAGE_EDIT_MAX_BYTES) {
-        setError('图片大小不能超过 25MB');
+      if (sourceImage.size <= 0 || sourceImage.size > IMAGE_EDIT_MAX_BYTES) {
+        setError('图片大小不能超过 10MB');
         return;
       }
     }
@@ -108,7 +108,9 @@ export default function ImageGenerationPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <img src={IMAGE_ICON_URL} alt="" className="h-10 w-10 object-contain" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--oa-paper-soft)] text-[var(--oa-ink)]">
+              <img src={IMAGE_MODEL_ICON_URL} alt="" className="h-7 w-7 object-contain" />
+            </div>
             <div>
               <CardTitle>图片生成</CardTitle>
               <CardDescription>使用 {IMAGE_MODEL_NAME}，生成新图片或编辑已有图片。</CardDescription>
@@ -155,8 +157,8 @@ export default function ImageGenerationPage() {
                     className="flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-4 py-5 text-center text-sm text-[var(--oa-muted)] transition hover:border-[var(--oa-ink)] hover:text-[var(--oa-ink)]"
                   >
                     <Upload className="mb-2 h-6 w-6" />
-                    <span className="font-medium">{sourceImage ? sourceImage.name : '上传 PNG、JPG 或 WEBP'}</span>
-                    <span className="mt-1 text-xs">最大 25MB</span>
+                    <span className="font-medium">{sourceImage ? sourceImage.name : '上传 JPG、PNG、BMP、TIFF、WEBP 或 GIF'}</span>
+                    <span className="mt-1 text-xs">最大 10MB</span>
                     <input
                       key={sourceInputKey}
                       id="source-image"

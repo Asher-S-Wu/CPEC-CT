@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { editAndStoreImage } from "@/lib/media/server/zenmux/images";
+import { editAndStoreImage } from "@/lib/media/server/bailian/images";
 import {
   IMAGE_EDIT_ACCEPTED_MIME_TYPES,
   IMAGE_EDIT_MAX_BYTES,
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const prompt = String(formData.get("prompt") || "").trim();
-    const size = String(formData.get("size") || "1920x1920");
+    const size = String(formData.get("size") || "2048*2048");
     const image = formData.get("image");
 
     if (!prompt) {
@@ -47,11 +47,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ALLOWED_MIME_TYPES.has(image.type)) {
-      return NextResponse.json({ success: false, message: "仅支持 PNG、JPG、WEBP 图片" }, { status: 400 });
+      return NextResponse.json({ success: false, message: "仅支持 JPG、JPEG、PNG、BMP、TIFF、WEBP、GIF 图片" }, { status: 400 });
     }
 
     if (image.size <= 0 || image.size > IMAGE_EDIT_MAX_BYTES) {
-      return NextResponse.json({ success: false, message: "图片大小不能超过 25MB" }, { status: 400 });
+      return NextResponse.json({ success: false, message: "图片大小不能超过 10MB" }, { status: 400 });
     }
 
     const imageUrl = await editAndStoreImage({

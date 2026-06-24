@@ -4,8 +4,8 @@ import { getAuthPayload } from "@/lib/ai/auth";
 import { rateLimit, getClientIP } from "@/lib/ai/rateLimit";
 import {
   getModelConfig,
+  isBailianChatModel,
   isPrimaryChatModelId,
-  isZenMuxChatModel,
 } from "@/lib/ai/shared/models";
 import {
   isNonEmptyString,
@@ -31,7 +31,7 @@ import {
 } from "@/lib/ai/server/chat/requestConfig";
 import {
   buildChatCompletionsRequest,
-  createZenMuxOpenAIClient,
+  createBailianOpenAIClient,
   getChatCompletionChunkDelta,
   getChatCompletionChunkThoughtDelta,
   getChatCompletionCompletedUsage,
@@ -39,7 +39,7 @@ import {
   getChatCompletionOutputText,
   getChatCompletionToolCalls,
   normalizeOpenAIError,
-} from "@/lib/ai/server/zenmux/openai";
+} from "@/lib/ai/server/bailian/openai";
 import {
   executeTavilyChatTool,
   TAVILY_CHAT_TOOLS,
@@ -65,7 +65,7 @@ function buildChatProviderState({ completionId, usage }) {
   if (typeof completionId === "string" && completionId.trim()) state.completionId = completionId.trim();
   if (usage && typeof usage === "object" && !Array.isArray(usage)) state.usage = usage;
   if (Object.keys(state).length === 0) return undefined;
-  return { zenmuxChatCompletions: state };
+  return { bailianChatCompletions: state };
 }
 
 export async function POST(req) {
@@ -101,12 +101,12 @@ export async function POST(req) {
       return Response.json({ error: "unsupported model" }, { status: 400 });
     }
 
-    const usesZenMux = isZenMuxChatModel(model);
-    if (!usesZenMux) {
+    const usesBailian = isBailianChatModel(model);
+    if (!usesBailian) {
       return Response.json({ error: "unsupported model" }, { status: 400 });
     }
-    providerLogScope = "ai.zenmux";
-    providerDisplayName = "ZenMux";
+    providerLogScope = "ai.bailian";
+    providerDisplayName = "阿里云百炼";
 
     const auth = await getAuthPayload();
     if (!auth) {
@@ -147,7 +147,7 @@ export async function POST(req) {
     let previousMessages = Array.isArray(currentConversation?.messages) ? currentConversation.messages : [];
     let previousUpdatedAt = currentConversation?.updatedAt ? new Date(currentConversation.updatedAt) : new Date();
 
-    const openAIClient = createZenMuxOpenAIClient();
+    const openAIClient = createBailianOpenAIClient();
     const apiModel = model;
 
     const currentAttachments = Array.isArray(config?.attachments)
@@ -609,7 +609,7 @@ export async function POST(req) {
     let errorMessage = error?.message;
     if (isUpstreamAuthError) {
       errorMessage = `模型服务认证失败，请检查 ${providerDisplayName} 接口配置`;
-    } else if (error?.message?.includes("API_KEY") || error?.message?.includes("ZENMUX") || error?.message?.includes("ARK")) {
+    } else if (error?.message?.includes("API_KEY") || error?.message?.includes("DASHSCOPE")) {
       errorMessage = "API configuration error. Please check your API keys.";
     }
     return Response.json({ error: errorMessage }, { status });

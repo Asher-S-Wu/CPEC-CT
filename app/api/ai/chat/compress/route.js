@@ -2,7 +2,7 @@ import { getAuthPayload } from '@/lib/ai/auth';
 import { rateLimit, getClientIP } from '@/lib/ai/rateLimit';
 import dbConnect from '@/lib/ai/db';
 import { UserStore as User } from '@/lib/ai/server/store';
-import { requestZenMuxChatCompletion } from '@/lib/ai/server/zenmux/openai';
+import { requestBailianChatCompletion } from '@/lib/ai/server/bailian/openai';
 import { GLM_MODEL } from '@/lib/ai/shared/models';
 import { injectCurrentTimeSystemReminder } from '@/app/api/ai/chat/utils';
 import { logError } from '@/lib/logger';
@@ -81,7 +81,7 @@ export async function POST(req) {
 
         const systemPrompt = await injectCurrentTimeSystemReminder(COMPRESS_SYSTEM_PROMPT);
 
-        const summary = await requestZenMuxChatCompletion({
+        const summary = await requestBailianChatCompletion({
             system: systemPrompt,
             prompt: `请将以下对话历史压缩成一份摘要：\n\n${conversationText}`,
             model: GLM_MODEL,

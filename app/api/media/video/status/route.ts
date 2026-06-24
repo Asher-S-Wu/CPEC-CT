@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { fetchAndStoreVideoGenerationResult } from "@/lib/media/server/zenmux/videos";
+import { fetchAndStoreVideoGenerationResult } from "@/lib/media/server/bailian/videos";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -13,14 +13,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const operationName = typeof body?.operationName === "string" ? body.operationName.trim() : "";
+    const taskId = typeof body?.taskId === "string" ? body.taskId.trim() : "";
 
-    if (!operationName) {
+    if (!taskId) {
       return NextResponse.json({ success: false, message: "缺少视频任务编号" }, { status: 400 });
     }
 
     const result = await fetchAndStoreVideoGenerationResult({
-      operationName,
+      taskId,
       signal: request.signal,
     });
 

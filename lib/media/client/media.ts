@@ -18,7 +18,7 @@ function sleep(ms: number) {
   });
 }
 
-async function pollVideoGeneration(operationName: string) {
+async function pollVideoGeneration(taskId: string) {
   for (let attempt = 0; attempt < VIDEO_MAX_POLL_ATTEMPTS; attempt += 1) {
     if (attempt > 0) {
       await sleep(VIDEO_POLL_INTERVAL_MS);
@@ -27,7 +27,7 @@ async function pollVideoGeneration(operationName: string) {
     const response = await fetch("/api/media/video/status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ operationName }),
+      body: JSON.stringify({ taskId }),
     });
     const data = await readJson(response);
 
@@ -92,17 +92,13 @@ export async function generateVideo(input: {
   durationSeconds: VideoDuration;
   resolution: VideoResolution;
   image?: File | null;
-  lastFrame?: File | null;
-  generateAudio?: boolean;
 }) {
   const formData = new FormData();
   formData.append("prompt", input.prompt);
-  formData.append("aspectRatio", input.aspectRatio);
+  if (!input.image) formData.append("aspectRatio", input.aspectRatio);
   formData.append("durationSeconds", String(input.durationSeconds));
   formData.append("resolution", input.resolution);
-  formData.append("generateAudio", String(input.generateAudio !== false));
   if (input.image) formData.append("image", input.image);
-  if (input.lastFrame) formData.append("lastFrame", input.lastFrame);
 
   const response = await fetch("/api/media/video", {
     method: "POST",
@@ -116,10 +112,10 @@ export async function generateVideo(input: {
     return String(data.videoUrl);
   }
 
-  const operationName = typeof data.operationName === "string" ? data.operationName.trim() : "";
-  if (!operationName) {
+  const taskId = typeof data.taskId === "string" ? data.taskId.trim() : "";
+  if (!taskId) {
     throw new Error("视频任务提交完成，但没有返回任务编号");
   }
 
-  return pollVideoGeneration(operationName);
+  return pollVideoGeneration(taskId);
 }

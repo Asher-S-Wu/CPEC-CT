@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { generateAndStoreImage } from "@/lib/media/server/zenmux/images";
+import { generateAndStoreImage } from "@/lib/media/server/bailian/images";
 import { IMAGE_PROMPT_MAX_LENGTH, IMAGE_SIZE_OPTIONS, type ImageSize } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
-    const size = typeof body?.size === "string" ? body.size : "1920x1920";
+    const size = typeof body?.size === "string" ? body.size : "2048*2048";
 
     if (!prompt) {
       return NextResponse.json({ success: false, message: "请输入图片描述" }, { status: 400 });

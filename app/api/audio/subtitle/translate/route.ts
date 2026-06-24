@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
-import { DOUBAO_SEED_MODEL } from '@/lib/ai/shared/models';
-import { requestZenMuxChatCompletion } from '@/lib/ai/server/zenmux/openai';
+import { QWEN_MODEL } from '@/lib/ai/shared/models';
+import { requestBailianChatCompletion } from '@/lib/ai/server/bailian/openai';
 import { logError } from '@/lib/logger';
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       numberedLines,
     ].join('\n');
 
-    const resultText = await requestZenMuxChatCompletion({
-      model: DOUBAO_SEED_MODEL,
+    const resultText = await requestBailianChatCompletion({
+      model: QWEN_MODEL,
       prompt,
       signal: request?.signal,
       reasoningEffort: 'high',
