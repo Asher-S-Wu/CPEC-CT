@@ -6,15 +6,14 @@ import {
   type VideoDuration,
   type VideoResolution,
 } from "@/lib/media/shared/models";
-import { saveMediaFromUrl } from "@/lib/media/storage";
+import { saveImageBuffer, saveMediaFromUrl } from "@/lib/media/storage";
 
 const PENDING_STATUSES = new Set(["queued", "running"]);
 
-async function fileToDataUrl(file?: File) {
+async function fileToPublicImageUrl(file?: File) {
   if (!file) return "";
-  const mimeType = file.type || "image/png";
-  const bytes = Buffer.from(await file.arrayBuffer()).toString("base64");
-  return `data:${mimeType};base64,${bytes}`;
+  const saved = await saveImageBuffer(await file.arrayBuffer(), file.type || "image/png");
+  return saved.url;
 }
 
 async function buildVideoContent({
@@ -28,8 +27,8 @@ async function buildVideoContent({
 }) {
   const content: Array<Record<string, unknown>> = [];
   const text = typeof prompt === "string" ? prompt.trim() : "";
-  const firstFrameUrl = await fileToDataUrl(image);
-  const lastFrameUrl = await fileToDataUrl(lastFrame);
+  const firstFrameUrl = await fileToPublicImageUrl(image);
+  const lastFrameUrl = await fileToPublicImageUrl(lastFrame);
 
   if (text) {
     content.push({ type: "text", text });

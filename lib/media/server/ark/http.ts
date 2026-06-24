@@ -93,6 +93,7 @@ export function requestArkJson({
         method,
         protocol: endpoint.protocol,
         hostname: endpoint.hostname,
+        family: 4,
         port: endpoint.port,
         path: `${endpoint.pathname}${endpoint.search}`,
         headers: {
@@ -137,7 +138,7 @@ export function requestArkJson({
     request.on("error", fail);
 
     request.setTimeout(ARK_SERVICE_TIMEOUT_MS, () => {
-      fail(new Error(`${serviceName}服务连接超时，请稍后再试`));
+      fail(new Error(`${serviceName}服务响应超时，请稍后再试`));
       request.destroy();
     });
 
