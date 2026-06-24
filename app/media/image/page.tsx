@@ -22,7 +22,7 @@ type ImageMode = 'generate' | 'edit';
 export default function ImageGenerationPage() {
   const [mode, setMode] = useState<ImageMode>('generate');
   const [prompt, setPrompt] = useState('');
-  const [size, setSize] = useState<ImageSize>('1024x1024');
+  const [size, setSize] = useState<ImageSize>('1920x1920');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [imageUrl, setImageUrl] = useState('');

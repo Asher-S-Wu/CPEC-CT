@@ -17,9 +17,9 @@ export const VIDEO_ICON_URL =
   "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/08/YSFtnJU/Property-1Bytedance.svg";
 
 export const IMAGE_SIZE_OPTIONS = [
-  { id: "1024x1024", label: "正方形 1024×1024" },
-  { id: "1536x1024", label: "横版 1536×1024" },
-  { id: "1024x1536", label: "竖版 1024×1536" },
+  { id: "1920x1920", label: "正方形 1920×1920" },
+  { id: "2560x1440", label: "横版 2560×1440" },
+  { id: "1440x2560", label: "竖版 1440×2560" },
 ] as const;
 
 export const VIDEO_ASPECT_RATIO_OPTIONS = [

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
-    const size = typeof body?.size === "string" ? body.size : "1024x1024";
+    const size = typeof body?.size === "string" ? body.size : "1920x1920";
 
     if (!prompt) {
       return NextResponse.json({ success: false, message: "请输入图片描述" }, { status: 400 });

@@ -46,7 +46,7 @@ async function saveImageResult(response: { data?: Array<{ url?: string | null; b
 
 export async function generateAndStoreImage({
   prompt,
-  size = "1024x1024",
+  size = "1920x1920",
   signal,
 }: {
   prompt: string;
@@ -73,7 +73,7 @@ export async function generateAndStoreImage({
 export async function editAndStoreImage({
   prompt,
   image,
-  size = "1024x1024",
+  size = "1920x1920",
   signal,
 }: {
   prompt: string;

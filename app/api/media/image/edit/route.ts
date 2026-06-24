@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const prompt = String(formData.get("prompt") || "").trim();
-    const size = String(formData.get("size") || "1024x1024");
+    const size = String(formData.get("size") || "1920x1920");
     const image = formData.get("image");
 
     if (!prompt) {
