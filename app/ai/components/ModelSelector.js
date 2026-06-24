@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -18,6 +18,7 @@ export default function ModelSelector({
 }) {
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [menuStyle, setMenuStyle] = useState(null);
+  const menuRef = useRef(null);
   const triggerRef = useRef(null);
   const mounted = typeof window !== "undefined";
   const currentModel = ready ? CHAT_MODELS.find((item) => item.id === model) : null;
@@ -38,14 +39,16 @@ export default function ModelSelector({
       Math.max(viewportOffsetLeft + padding, rect.left + viewportOffsetLeft),
       viewportOffsetLeft + viewportWidth - width - padding
     );
-    const spaceAbove = rect.top - padding;
-    const maxHeight = Math.min(420, Math.max(spaceAbove - gap, 180));
-    const top = Math.max(viewportOffsetTop + padding, rect.top + viewportOffsetTop - maxHeight - gap);
+    const menuHeight = Math.min(
+      menuRef.current?.offsetHeight || 420,
+      Math.max(rect.top - padding - gap, 180)
+    );
+    const top = Math.max(viewportOffsetTop + padding, rect.top + viewportOffsetTop - menuHeight - gap);
     setMenuStyle({
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
-      maxHeight: `${maxHeight}px`,
+      maxHeight: `${menuHeight}px`,
     });
   }, []);
 
@@ -58,6 +61,11 @@ export default function ModelSelector({
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
     };
+  }, [mounted, showModelMenu, updateMenuPosition]);
+
+  useLayoutEffect(() => {
+    if (!showModelMenu || !mounted || !menuRef.current) return;
+    updateMenuPosition();
   }, [mounted, showModelMenu, updateMenuPosition]);
 
   return (
@@ -96,6 +104,7 @@ export default function ModelSelector({
                 onClick={() => setShowModelMenu(false)}
               />
               <motion.div
+                ref={menuRef}
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
