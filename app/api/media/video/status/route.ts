@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
-import { fetchAndStoreVideoGenerationResult } from "@/lib/media/server/zenmux/videos";
+import { fetchAndStoreVideoGenerationResult } from "@/lib/media/server/ark/videos";
 import { logError } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {

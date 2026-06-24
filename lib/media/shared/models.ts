@@ -1,7 +1,7 @@
-export const IMAGE_MODEL = "bytedance/doubao-seedream-5.0-lite";
-export const VIDEO_MODEL = "bytedance/doubao-seedance-2.0";
+export const IMAGE_MODEL = "doubao-seedream-5-0-lite-260128";
+export const VIDEO_MODEL = "doubao-seedance-2-0-260128";
 
-export const IMAGE_MODEL_NAME = "Doubao-Seedream-5.0-lite";
+export const IMAGE_MODEL_NAME = "Doubao Seedream 5.0 Lite";
 export const VIDEO_MODEL_NAME = "Seedance 2.0";
 export const IMAGE_PROMPT_MAX_LENGTH = 32000;
 export const IMAGE_EDIT_MAX_BYTES = 25 * 1024 * 1024;
@@ -17,7 +17,6 @@ export const VIDEO_ICON_URL =
   "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/08/YSFtnJU/Property-1Bytedance.svg";
 
 export const IMAGE_SIZE_OPTIONS = [
-  { id: "auto", label: "自动" },
   { id: "1024x1024", label: "正方形 1024×1024" },
   { id: "1536x1024", label: "横版 1536×1024" },
   { id: "1024x1536", label: "竖版 1024×1536" },
@@ -39,25 +38,7 @@ export const VIDEO_RESOLUTION_OPTIONS = [
   { id: "1080p", label: "1080p" },
 ] as const;
 
-export const VIDEO_PERSON_GENERATION_OPTIONS = [
-  { id: "", label: "默认" },
-  { id: "dont_allow", label: "不生成真人" },
-  { id: "allow_adult", label: "允许成年人" },
-] as const;
-
 export type ImageSize = (typeof IMAGE_SIZE_OPTIONS)[number]["id"];
 export type VideoAspectRatio = (typeof VIDEO_ASPECT_RATIO_OPTIONS)[number]["id"];
 export type VideoDuration = (typeof VIDEO_DURATION_OPTIONS)[number]["id"];
 export type VideoResolution = (typeof VIDEO_RESOLUTION_OPTIONS)[number]["id"];
-export type VideoPersonGeneration = (typeof VIDEO_PERSON_GENERATION_OPTIONS)[number]["id"];
-
-export function parseModelSlug(slug: string) {
-  const index = slug.indexOf("/");
-  if (index < 0) {
-    return { provider: slug, model: slug };
-  }
-  return {
-    provider: slug.slice(0, index),
-    model: slug.slice(index + 1),
-  };
-}

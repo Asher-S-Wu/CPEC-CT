@@ -2,7 +2,6 @@ import type {
   ImageSize,
   VideoAspectRatio,
   VideoDuration,
-  VideoPersonGeneration,
   VideoResolution,
 } from "@/lib/media/shared/models";
 
@@ -94,12 +93,7 @@ export async function generateVideo(input: {
   resolution: VideoResolution;
   image?: File | null;
   lastFrame?: File | null;
-  negativePrompt?: string;
   generateAudio?: boolean;
-  enhancePrompt?: boolean;
-  personGeneration?: VideoPersonGeneration;
-  seed?: string;
-  fps?: string;
 }) {
   const formData = new FormData();
   formData.append("prompt", input.prompt);
@@ -107,11 +101,6 @@ export async function generateVideo(input: {
   formData.append("durationSeconds", String(input.durationSeconds));
   formData.append("resolution", input.resolution);
   formData.append("generateAudio", String(input.generateAudio !== false));
-  formData.append("enhancePrompt", String(input.enhancePrompt === true));
-  formData.append("personGeneration", input.personGeneration || "");
-  if (input.negativePrompt) formData.append("negativePrompt", input.negativePrompt);
-  if (input.seed) formData.append("seed", input.seed);
-  if (input.fps) formData.append("fps", input.fps);
   if (input.image) formData.append("image", input.image);
   if (input.lastFrame) formData.append("lastFrame", input.lastFrame);
 

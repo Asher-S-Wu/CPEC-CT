@@ -14,12 +14,10 @@ import {
   VIDEO_FRAME_MAX_BYTES,
   VIDEO_ICON_URL,
   VIDEO_MODEL_NAME,
-  VIDEO_PERSON_GENERATION_OPTIONS,
   VIDEO_PROMPT_MAX_LENGTH,
   VIDEO_RESOLUTION_OPTIONS,
   type VideoAspectRatio,
   type VideoDuration,
-  type VideoPersonGeneration,
   type VideoResolution,
 } from '@/lib/media/shared/models';
 
@@ -33,15 +31,10 @@ function isAcceptedFrame(file: File) {
 export default function VideoGenerationPage() {
   const [mode, setMode] = useState<VideoMode>('text');
   const [prompt, setPrompt] = useState('');
-  const [negativePrompt, setNegativePrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<VideoAspectRatio>('16:9');
   const [durationSeconds, setDurationSeconds] = useState<VideoDuration>(5);
   const [resolution, setResolution] = useState<VideoResolution>('720p');
   const [generateAudio, setGenerateAudio] = useState(true);
-  const [enhancePrompt, setEnhancePrompt] = useState(false);
-  const [personGeneration, setPersonGeneration] = useState<VideoPersonGeneration>('');
-  const [seed, setSeed] = useState('');
-  const [fps, setFps] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [lastFrame, setLastFrame] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
@@ -118,11 +111,6 @@ export default function VideoGenerationPage() {
       return;
     }
 
-    if (negativePrompt.trim().length > VIDEO_PROMPT_MAX_LENGTH) {
-      setError(`不希望出现的内容最多支持 ${VIDEO_PROMPT_MAX_LENGTH} 个字符`);
-      return;
-    }
-
     const imageError = validateFrame(mode === 'image' ? image : null, '首帧图片');
     if (imageError) {
       setError(imageError);
@@ -135,17 +123,6 @@ export default function VideoGenerationPage() {
       return;
     }
 
-    if (seed.trim() && !Number.isFinite(Number(seed.trim()))) {
-      setError('种子必须是数字');
-      return;
-    }
-
-    const fpsNumber = Number(fps.trim());
-    if (fps.trim() && (!Number.isInteger(fpsNumber) || fpsNumber <= 0)) {
-      setError('帧率必须是正整数');
-      return;
-    }
-
     setIsGenerating(true);
     try {
       const url = await generateVideo({
@@ -155,12 +132,7 @@ export default function VideoGenerationPage() {
         resolution,
         image: mode === 'image' ? image : null,
         lastFrame: mode === 'image' ? lastFrame : null,
-        negativePrompt: negativePrompt.trim(),
         generateAudio,
-        enhancePrompt,
-        personGeneration,
-        seed: seed.trim(),
-        fps: fps.trim(),
       });
       setVideoUrl(url);
     } catch (generateError) {
@@ -347,80 +319,15 @@ export default function VideoGenerationPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="video-negative">不希望出现的内容</Label>
-                <textarea
-                  id="video-negative"
-                  value={negativePrompt}
-                  maxLength={VIDEO_PROMPT_MAX_LENGTH}
-                  onChange={(event) => setNegativePrompt(event.target.value)}
-                  placeholder="例如：低清晰度、画面抖动、文字水印、畸形手部"
-                  className="min-h-[96px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex min-h-[72px] items-center gap-3 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
-                  <input
-                    type="checkbox"
-                    checked={generateAudio}
-                    onChange={(event) => setGenerateAudio(event.target.checked)}
-                    className="h-4 w-4"
-                  />
-                  生成音轨
-                </label>
-                <label className="flex min-h-[72px] items-center gap-3 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
-                  <input
-                    type="checkbox"
-                    checked={enhancePrompt}
-                    onChange={(event) => setEnhancePrompt(event.target.checked)}
-                    className="h-4 w-4"
-                  />
-                  自动优化描述
-                </label>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="video-person">人物生成</Label>
-                <select
-                  id="video-person"
-                  value={personGeneration}
-                  onChange={(event) => setPersonGeneration(event.target.value as VideoPersonGeneration)}
-                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
-                >
-                  {VIDEO_PERSON_GENERATION_OPTIONS.map((option) => (
-                    <option key={option.id || 'default'} value={option.id}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="video-seed">种子</Label>
-                <input
-                  id="video-seed"
-                  value={seed}
-                  onChange={(event) => setSeed(event.target.value)}
-                  inputMode="numeric"
-                  placeholder="留空随机"
-                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="video-fps">帧率</Label>
-                <input
-                  id="video-fps"
-                  value={fps}
-                  onChange={(event) => setFps(event.target.value)}
-                  inputMode="numeric"
-                  placeholder="默认"
-                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
-                />
-              </div>
-            </div>
+            <label className="flex min-h-[72px] items-center gap-3 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)]">
+              <input
+                type="checkbox"
+                checked={generateAudio}
+                onChange={(event) => setGenerateAudio(event.target.checked)}
+                className="h-4 w-4"
+              />
+              生成音轨
+            </label>
 
             <p className="text-xs text-[var(--oa-muted)]">
               视频生成通常需要 1 到 3 分钟，请耐心等待。

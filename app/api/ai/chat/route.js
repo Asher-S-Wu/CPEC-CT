@@ -4,6 +4,8 @@ import { getAuthPayload } from "@/lib/ai/auth";
 import { rateLimit, getClientIP } from "@/lib/ai/rateLimit";
 import {
   getModelConfig,
+  isArkChatModel,
+  isPrimaryChatModelId,
   isZenMuxChatModel,
 } from "@/lib/ai/shared/models";
 import {
@@ -40,6 +42,10 @@ import {
   normalizeOpenAIError,
 } from "@/lib/ai/server/zenmux/openai";
 import {
+  buildArkChatCompletionsRequest,
+  createArkOpenAIClient,
+} from "@/lib/ai/server/ark/openai";
+import {
   executeTavilyChatTool,
   TAVILY_CHAT_TOOLS,
 } from "@/lib/ai/server/chat/tavilyTools";
@@ -59,15 +65,76 @@ import { logError } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function buildZenMuxChatProviderState({ completionId, usage }) {
+function pickStringField(source, name) {
+  return typeof source?.[name] === "string" && source[name].trim() ? source[name] : "";
+}
+
+function extractArkThinkingState(source) {
+  if (!source || typeof source !== "object") return null;
+  const state = {};
+  const reasoningContent = pickStringField(source, "reasoning_content");
+  const encryptedContent = pickStringField(source, "encrypted_content");
+
+  if (reasoningContent) state.reasoning_content = reasoningContent;
+  if (encryptedContent) state.encrypted_content = encryptedContent;
+  if (Array.isArray(source.reasoning_details) && source.reasoning_details.length > 0) {
+    state.reasoning_details = source.reasoning_details;
+  }
+
+  return Object.keys(state).length > 0 ? state : null;
+}
+
+function mergeArkThinkingState(current, source, { appendReasoningContent = false } = {}) {
+  const next = extractArkThinkingState(source);
+  if (!next) return current;
+  const merged = { ...(current || {}) };
+  if (typeof next.reasoning_content === "string") {
+    merged.reasoning_content = appendReasoningContent
+      ? `${merged.reasoning_content || ""}${next.reasoning_content}`
+      : next.reasoning_content;
+  }
+  if (typeof next.encrypted_content === "string") {
+    merged.encrypted_content = next.encrypted_content;
+  }
+  if (Array.isArray(next.reasoning_details)) {
+    merged.reasoning_details = next.reasoning_details;
+  }
+  return Object.keys(merged).length > 0 ? merged : current;
+}
+
+function addArkThinkingFields(message, thinkingState) {
+  if (!thinkingState || typeof thinkingState !== "object") return message;
+  return {
+    ...message,
+    ...(typeof thinkingState.reasoning_content === "string"
+      ? { reasoning_content: thinkingState.reasoning_content }
+      : {}),
+    ...(typeof thinkingState.encrypted_content === "string"
+      ? { encrypted_content: thinkingState.encrypted_content }
+      : {}),
+    ...(Array.isArray(thinkingState.reasoning_details)
+      ? { reasoning_details: thinkingState.reasoning_details }
+      : {}),
+  };
+}
+
+function buildChatProviderState({ provider, completionId, usage, arkThinkingState }) {
   const state = {};
   if (typeof completionId === "string" && completionId.trim()) state.completionId = completionId.trim();
   if (usage && typeof usage === "object" && !Array.isArray(usage)) state.usage = usage;
-  return Object.keys(state).length > 0 ? { zenmuxChatCompletions: state } : undefined;
+  if (provider === "ark" && arkThinkingState && typeof arkThinkingState === "object") {
+    state.thinking = arkThinkingState;
+  }
+  if (Object.keys(state).length === 0) return undefined;
+  return provider === "ark"
+    ? { arkChatCompletions: state }
+    : { zenmuxChatCompletions: state };
 }
 
 export async function POST(req) {
   let writePermitTime = null;
+  let providerLogScope = "ai.chat";
+  let providerDisplayName = "模型服务";
 
   try {
     const contentLength = req.headers.get("content-length");
@@ -93,9 +160,17 @@ export async function POST(req) {
     if (!Array.isArray(history)) {
       return Response.json({ error: "history must be an array" }, { status: 400 });
     }
-    if (!isZenMuxChatModel(model)) {
+    if (!isPrimaryChatModelId(model)) {
       return Response.json({ error: "unsupported model" }, { status: 400 });
     }
+
+    const usesArk = isArkChatModel(model);
+    const usesZenMux = isZenMuxChatModel(model);
+    if (!usesArk && !usesZenMux) {
+      return Response.json({ error: "unsupported model" }, { status: 400 });
+    }
+    providerLogScope = usesArk ? "ai.ark" : "ai.zenmux";
+    providerDisplayName = usesArk ? "火山方舟" : "ZenMux";
 
     const auth = await getAuthPayload();
     if (!auth) {
@@ -122,7 +197,7 @@ export async function POST(req) {
       }
       user = auth;
     } catch (dbError) {
-      logError("ai.zenmux", "connect database", dbError);
+      logError(providerLogScope, "connect database", dbError);
       return Response.json({ error: "Database connection failed" }, { status: 500 });
     }
 
@@ -136,7 +211,9 @@ export async function POST(req) {
     let previousMessages = Array.isArray(currentConversation?.messages) ? currentConversation.messages : [];
     let previousUpdatedAt = currentConversation?.updatedAt ? new Date(currentConversation.updatedAt) : new Date();
 
-    const zenMuxClient = createZenMuxOpenAIClient();
+    const openAIClient = usesArk ? createArkOpenAIClient() : createZenMuxOpenAIClient();
+    const buildProviderRequest = usesArk ? buildArkChatCompletionsRequest : buildChatCompletionsRequest;
+    const providerStateKey = usesArk ? "ark" : "zenmux";
     const apiModel = model;
 
     const currentAttachments = Array.isArray(config?.attachments)
@@ -298,6 +375,7 @@ export async function POST(req) {
         let finalCitations = [];
         let finalTools = [];
         let searchContextTokens = 0;
+        let arkThinkingState = null;
 
         const rollbackCurrentTurn = async () => {
           if (finalMessagePersisted) return;
@@ -341,8 +419,8 @@ export async function POST(req) {
             let toolCallsUsed = 0;
 
             while (toolCallsUsed < 5 && !terminalResponse) {
-              const toolResponse = await zenMuxClient.chat.completions.create(
-                buildChatCompletionsRequest({
+              const toolResponse = await openAIClient.chat.completions.create(
+                buildProviderRequest({
                   model: apiModel,
                   messages: responseMessages,
                   system: systemPrompt,
@@ -361,6 +439,10 @@ export async function POST(req) {
               if (toolUsage) finalUsage = toolUsage;
 
               const assistantMessage = getChatCompletionMessage(toolResponse);
+              const assistantArkThinkingState = usesArk ? extractArkThinkingState(assistantMessage) : null;
+              if (usesArk) {
+                arkThinkingState = mergeArkThinkingState(arkThinkingState, assistantMessage);
+              }
               const calls = getChatCompletionToolCalls(toolResponse);
               const reasoningText = typeof assistantMessage?.reasoning === "string"
                 ? assistantMessage.reasoning
@@ -377,7 +459,7 @@ export async function POST(req) {
                 break;
               }
 
-              responseMessages.push({
+              const assistantToolMessage = {
                 role: "assistant",
                 content: assistantMessage?.content || "",
                 tool_calls: calls,
@@ -387,7 +469,10 @@ export async function POST(req) {
                 ...(Array.isArray(assistantMessage?.reasoning_details)
                   ? { reasoning_details: assistantMessage.reasoning_details }
                   : {}),
-              });
+              };
+              responseMessages.push(usesArk
+                ? addArkThinkingFields(assistantToolMessage, assistantArkThinkingState)
+                : assistantToolMessage);
 
               for (const call of calls) {
                 if (toolCallsUsed >= 5) {
@@ -463,6 +548,9 @@ export async function POST(req) {
           }
 
           if (terminalResponse) {
+            if (usesArk) {
+              arkThinkingState = mergeArkThinkingState(arkThinkingState, getChatCompletionMessage(terminalResponse));
+            }
             const answer = getChatCompletionOutputText(terminalResponse);
             if (!answer) {
               throw new Error("模型完成联网后没有返回答案");
@@ -470,8 +558,8 @@ export async function POST(req) {
             fullText += answer;
             sendEvent({ type: "text", content: answer });
           } else {
-            const stream = await zenMuxClient.chat.completions.create(
-              buildChatCompletionsRequest({
+            const stream = await openAIClient.chat.completions.create(
+              buildProviderRequest({
                 model: apiModel,
                 messages: responseMessages,
                 system: systemPrompt,
@@ -489,6 +577,9 @@ export async function POST(req) {
               }
 
               const delta = getChatCompletionChunkDelta(chunk);
+              if (usesArk) {
+                arkThinkingState = mergeArkThinkingState(arkThinkingState, delta, { appendReasoningContent: true });
+              }
               const textDelta = typeof delta?.content === "string" ? delta.content : "";
               if (textDelta) {
                 fullText += textDelta;
@@ -523,9 +614,11 @@ export async function POST(req) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
           if (user && currentConversationId) {
-            const providerState = buildZenMuxChatProviderState({
+            const providerState = buildChatProviderState({
+              provider: providerStateKey,
               completionId: finalCompletionId,
               usage: finalUsage,
+              arkThinkingState,
             });
             const modelMessage = {
               id: resolvedModelMessageId,
@@ -590,14 +683,14 @@ export async function POST(req) {
     return new Response(responseStream, { headers });
 
   } catch (error) {
-    logError("ai.zenmux", "handle chat request", error, { status: error?.status, code: error?.code });
+    logError(providerLogScope, "handle chat request", error, { status: error?.status, code: error?.code });
     const rawStatus = typeof error?.status === "number" ? error.status : 500;
     const isUpstreamAuthError = rawStatus === 401;
     const status = isUpstreamAuthError ? 500 : rawStatus;
     let errorMessage = error?.message;
     if (isUpstreamAuthError) {
-      errorMessage = "模型服务认证失败，请检查 ZenMux 接口配置";
-    } else if (error?.message?.includes("API_KEY") || error?.message?.includes("ZENMUX")) {
+      errorMessage = `模型服务认证失败，请检查 ${providerDisplayName} 接口配置`;
+    } else if (error?.message?.includes("API_KEY") || error?.message?.includes("ZENMUX") || error?.message?.includes("ARK")) {
       errorMessage = "API configuration error. Please check your API keys.";
     }
     return Response.json({ error: errorMessage }, { status });
