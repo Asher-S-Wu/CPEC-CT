@@ -1,7 +1,7 @@
-export const IMAGE_MODEL = "openai/gpt-image-2";
+export const IMAGE_MODEL = "bytedance/doubao-seedream-5.0-lite";
 export const VIDEO_MODEL = "bytedance/doubao-seedance-2.0";
 
-export const IMAGE_MODEL_NAME = "GPT Image 2";
+export const IMAGE_MODEL_NAME = "Doubao-Seedream-5.0-lite";
 export const VIDEO_MODEL_NAME = "Seedance 2.0";
 export const IMAGE_PROMPT_MAX_LENGTH = 32000;
 export const IMAGE_EDIT_MAX_BYTES = 25 * 1024 * 1024;
@@ -11,7 +11,7 @@ export const VIDEO_FRAME_MAX_BYTES = 25 * 1024 * 1024;
 export const VIDEO_FRAME_ACCEPTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 
 export const IMAGE_ICON_URL =
-  "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/Mm7IePA/Property-1GPT.svg";
+  "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/08/YSFtnJU/Property-1Bytedance.svg";
 
 export const VIDEO_ICON_URL =
   "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/08/YSFtnJU/Property-1Bytedance.svg";

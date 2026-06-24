@@ -1,9 +1,10 @@
 import { getModelProvider } from "@/lib/ai/shared/models";
 
 const PROVIDER_ICON_URLS = Object.freeze({
-  anthropic: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/dzvOyI0/Property-1Claude.svg",
-  google: "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/13/QgpuHH0/Property-1Gemini.svg",
-  openai: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/Mm7IePA/Property-1GPT.svg",
+  bytedance: "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/08/YSFtnJU/Property-1Bytedance.svg",
+  "z-ai": "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/bkWpB0o/Property-1Zai.svg",
+  moonshotai: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/mitcnMm/Property-1KIMI.svg",
+  qwen: "https://cdn.marmot-cloud.com/storage/zenmux/2026/04/01/qeMamJm/Property-1Qwen.svg",
   deepseek: "https://cdn.marmot-cloud.com/storage/zenmux/2025/10/15/tmeJLqx/Property-1deepseek.svg",
 });
 
