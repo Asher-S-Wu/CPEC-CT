@@ -40,9 +40,10 @@ export default function ModelSelector({
     );
     const spaceAbove = rect.top - padding;
     const maxHeight = Math.min(420, Math.max(spaceAbove - gap, 180));
+    const top = Math.max(viewportOffsetTop + padding, rect.top + viewportOffsetTop - maxHeight - gap);
     setMenuStyle({
       left: `${left}px`,
-      bottom: `${viewportHeight + viewportOffsetTop - rect.top + gap}px`,
+      top: `${top}px`,
       width: `${width}px`,
       maxHeight: `${maxHeight}px`,
     });
