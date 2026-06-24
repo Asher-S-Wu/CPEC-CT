@@ -4,6 +4,8 @@ import { generateAndStoreImage } from "@/lib/media/server/ark/images";
 import { IMAGE_PROMPT_MAX_LENGTH, IMAGE_SIZE_OPTIONS, type ImageSize } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
+export const runtime = "nodejs";
+
 const ALLOWED_SIZES = new Set<string>(IMAGE_SIZE_OPTIONS.map((item) => item.id));
 
 export async function POST(request: NextRequest) {

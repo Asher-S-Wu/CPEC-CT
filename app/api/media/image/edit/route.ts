@@ -10,6 +10,8 @@ import {
 } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
+export const runtime = "nodejs";
+
 const ALLOWED_SIZES = new Set<string>(IMAGE_SIZE_OPTIONS.map((item) => item.id));
 const ALLOWED_MIME_TYPES = new Set<string>(IMAGE_EDIT_ACCEPTED_MIME_TYPES);
 
