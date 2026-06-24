@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/audio/auth/session";
 import { generateAndStoreImage } from "@/lib/media/server/zenmux/images";
-import { IMAGE_PROMPT_MAX_LENGTH, IMAGE_SIZE_OPTIONS } from "@/lib/media/shared/models";
+import { IMAGE_PROMPT_MAX_LENGTH, IMAGE_SIZE_OPTIONS, type ImageSize } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
 const ALLOWED_SIZES = new Set<string>(IMAGE_SIZE_OPTIONS.map((item) => item.id));
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = await generateAndStoreImage({
       prompt,
-      size,
+      size: size as ImageSize,
       signal: request.signal,
     });
 

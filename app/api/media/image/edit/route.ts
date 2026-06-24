@@ -6,6 +6,7 @@ import {
   IMAGE_EDIT_MAX_BYTES,
   IMAGE_PROMPT_MAX_LENGTH,
   IMAGE_SIZE_OPTIONS,
+  type ImageSize,
 } from "@/lib/media/shared/models";
 import { logError } from "@/lib/logger";
 
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     const imageUrl = await editAndStoreImage({
       prompt,
       image,
-      size,
+      size: size as ImageSize,
       signal: request.signal,
     });
 
