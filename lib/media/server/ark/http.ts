@@ -1,4 +1,4 @@
-import { request as httpsRequest } from "node:https";
+import { Agent, request as httpsRequest } from "node:https";
 
 const ARK_SERVICE_TIMEOUT_MS = 180_000;
 
@@ -71,6 +71,8 @@ export function requestArkJson({
   const payload = body ? JSON.stringify(body) : "";
   const endpoint = new URL(url);
   const startedAt = Date.now();
+  const timeoutSeconds = Math.round(timeoutMs / 1000);
+  const agent = new Agent({ keepAlive: false, timeout: timeoutMs });
 
   return new Promise<any>((resolve, reject) => {
     if (signal?.aborted) {
@@ -83,6 +85,7 @@ export function requestArkJson({
     const cleanup = () => {
       finished = true;
       signal?.removeEventListener("abort", handleAbort);
+      agent.destroy();
     };
     const fail = (error: unknown) => {
       if (finished) return;
@@ -102,8 +105,11 @@ export function requestArkJson({
         family: 4,
         port: endpoint.port,
         path: `${endpoint.pathname}${endpoint.search}`,
+        agent,
+        timeout: timeoutMs,
         headers: {
           ...getAuthHeaders(apiKey),
+          Connection: "close",
           ...(payload ? { "Content-Length": Buffer.byteLength(payload) } : {}),
         },
       },
@@ -143,9 +149,13 @@ export function requestArkJson({
 
     request.on("error", fail);
 
+    request.on("socket", (socket) => {
+      socket.setTimeout(timeoutMs);
+    });
+
     request.setTimeout(timeoutMs, () => {
       const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-      fail(new Error(`${serviceName}服务响应超时（已等待 ${elapsedSeconds} 秒），请稍后再试`));
+      fail(new Error(`${serviceName}服务响应超时（已等待 ${elapsedSeconds} 秒，配置 ${timeoutSeconds} 秒），请稍后再试`));
       request.destroy();
     });
 
