@@ -29,13 +29,15 @@ function getErrorCode(error: unknown) {
   return "";
 }
 
-function normalizeArkRequestError(error: unknown, serviceName: string) {
+function normalizeArkRequestError(error: unknown, serviceName: string, endpointHostname: string) {
   if (error instanceof Error && error.message === `${serviceName}处理已取消`) {
     return error;
   }
 
   const code = getErrorCode(error);
   const message = error instanceof Error ? error.message : "";
+  const region = process.env.VERCEL_REGION?.trim() || "unknown";
+  const target = endpointHostname || "unknown";
 
   if (
     message === `${serviceName}服务连接超时，请稍后再试` ||
@@ -45,7 +47,7 @@ function normalizeArkRequestError(error: unknown, serviceName: string) {
   }
 
   if (["ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT"].includes(code)) {
-    return new Error(`${serviceName}服务网络连接失败，请稍后再试`, { cause: error });
+    return new Error(`${serviceName}服务网络连接失败（区域 ${region}，目标 ${target}），请稍后再试`, { cause: error });
   }
 
   return new Error(`${serviceName}服务请求失败，请稍后再试`, { cause: error });
@@ -90,7 +92,7 @@ export function requestArkJson({
     const fail = (error: unknown) => {
       if (finished) return;
       cleanup();
-      reject(normalizeArkRequestError(error, serviceName));
+      reject(normalizeArkRequestError(error, serviceName, endpoint.hostname));
     };
     const handleAbort = () => {
       fail(new Error(`${serviceName}处理已取消`));

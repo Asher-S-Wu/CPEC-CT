@@ -1,5 +1,5 @@
 export const IMAGE_MODEL = "doubao-seedream-5-0-lite-260128";
-export const VIDEO_MODEL = "doubao-seedance-2-0-fast-260128";
+export const VIDEO_MODEL = "doubao-seedance-2-0-fast";
 
 export const IMAGE_MODEL_NAME = "Doubao Seedream 5.0 Lite";
 export const VIDEO_MODEL_NAME = "Doubao Seedance 2.0 Fast";
