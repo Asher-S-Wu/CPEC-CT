@@ -69,7 +69,7 @@ function SidebarContent({ onNavigate, collapsed }: { onNavigate?: () => void; co
         <BrandMark className="app-sidebar-mark" />
         {!collapsed && (
           <div className="min-w-0">
-            <div className="app-sidebar-title truncate">智创 AI</div>
+            <div className="app-sidebar-title truncate">AI 业务工具</div>
           </div>
         )}
       </div>

@@ -9,7 +9,7 @@ export function BrandMark({ className }: BrandMarkProps) {
     <div
       className={cn("brand-mark h-8 w-8 rounded-lg", className)}
       role="img"
-      aria-label="智创 AI"
+      aria-label="AI 业务工具"
     >
       <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false" fill="none">
         <path

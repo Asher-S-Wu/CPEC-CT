@@ -1,4 +1,4 @@
-export const APP_NAME = "智创 AI 工作台";
+export const APP_NAME = "AI 业务工具";
 export const APP_TAGLINE = "AI 赋能数字融媒体创制";
 
 export const SESSION_COOKIE_NAME = "studio_session";

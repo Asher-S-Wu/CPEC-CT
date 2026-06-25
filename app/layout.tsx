@@ -47,7 +47,7 @@ const bodyFont = Noto_Sans_SC({
 });
 
 export const metadata: Metadata = {
-  title: "智创 AI 工作台",
+  title: "AI 业务工具",
   description: "AI 对话、语音合成与录音识别，AI 赋能数字融媒体创制"
 };
 
