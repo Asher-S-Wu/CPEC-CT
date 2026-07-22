@@ -237,7 +237,7 @@ export function Citations({ citations }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full bg-[var(--oa-paper-soft)] px-2.5 py-1.5 text-xs text-[var(--oa-muted)] transition-colors hover:bg-[var(--oa-muted)] hover:text-[var(--oa-ink)]"
+        className="inline-flex items-center gap-2 rounded-full bg-[var(--oa-paper-soft)] px-2.5 py-1.5 text-xs text-[var(--oa-muted)] transition-colors hover:bg-[var(--oa-border)] hover:text-[var(--oa-ink)]"
         title="查看全部来源"
       >
         <Search size={12} className="text-[var(--oa-muted)]" />
@@ -257,10 +257,10 @@ export function Citations({ citations }) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60"
             onClick={() => setOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-4">
+          <div className="relative w-full max-w-md rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-4 shadow-[var(--shadow-lg)]">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm font-medium text-[var(--oa-ink)]">
                 <Search size={14} />
@@ -286,7 +286,7 @@ export function Citations({ citations }) {
                       href={citation.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-2.5 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-muted)]"
+                      className="flex items-center gap-2 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] px-2.5 py-2 text-sm text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-border)]"
                       title={citation.title || citation.url}
                     >
                       <WebFavicon url={citation.url} favicon={citation.favicon} size={16} className="flex-shrink-0" />

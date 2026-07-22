@@ -3,15 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Clapperboard,
   Copy,
   Download,
   Edit3,
+  Languages,
+  Lightbulb,
+  PenLine,
   Trash2,
 } from "lucide-react";
 import Markdown from "./Markdown";
 import ThinkingBlock from "./ThinkingBlock";
 import ImageLightbox from "./ImageLightbox";
 import ConfirmModal from "@/components/ui/confirm-modal";
+import { BrandMark } from "@/components/brand/brand-logo";
 import { useToast } from "./ToastProvider";
 import { exportMessageContent } from "@/lib/ai/client/messageExport";
 import {
@@ -38,6 +43,13 @@ import {
 } from "@/lib/ai/shared/webBrowsing";
 
 const PENDING_RUN_TEXTS = new Set(["正在处理中..."]);
+
+const CHAT_SUGGESTIONS = [
+  { icon: PenLine, text: "帮我写一份活动策划方案" },
+  { icon: Lightbulb, text: "用简单的话解释一个专业概念" },
+  { icon: Languages, text: "把一段中文翻译成地道的英文" },
+  { icon: Clapperboard, text: "帮我想 10 个短视频选题创意" },
+];
 
 function containsMarkdownTable(text) {
   if (typeof text !== "string") return false;
@@ -114,6 +126,7 @@ export default function MessageList({
   onDeleteModelMessage,
   onDeleteUserMessage,
   onStartEdit,
+  onSuggestionSelect,
   userNickname,
 }) {
   const editTextareaRef = useRef(null);
@@ -265,11 +278,33 @@ export default function MessageList({
           </div>
         ) : (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="min-h-[280px]"
-          />
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex min-h-full flex-col items-center justify-center px-2 py-10"
+          >
+            <BrandMark className="h-14 w-14 rounded-2xl" />
+            <h2 className="mt-5 text-lg font-semibold text-[var(--text-primary)]">有什么可以帮你的？</h2>
+            <p className="mt-1.5 text-center text-sm text-[var(--text-muted)]">
+              直接在下方输入问题，或从示例快速开始
+            </p>
+            <div className="mt-7 grid w-full max-w-2xl gap-2.5 sm:grid-cols-2">
+              {CHAT_SUGGESTIONS.map((suggestion) => {
+                const SuggestionIcon = suggestion.icon;
+                return (
+                  <button
+                    key={suggestion.text}
+                    type="button"
+                    onClick={() => onSuggestionSelect?.(suggestion.text)}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--ai-panel-border)] bg-[var(--ai-shell-surface-strong)] px-4 py-3.5 text-left text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--oa-ink)] hover:text-[var(--text-primary)]"
+                  >
+                    <SuggestionIcon size={16} className="shrink-0 text-[var(--text-muted)]" />
+                    <span className="min-w-0">{suggestion.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
         )
       ) : (
         messages.map((msg, i) => {
@@ -343,7 +378,7 @@ export default function MessageList({
 
                 {editingMsgIndex === i && msg.role === "user" && canEditUserMessage ? (
                   <div className="w-full flex flex-col items-end gap-2">
-                    <div className="msg-bubble-user w-full max-w-full">
+                    <div className="msg-bubble-user w-full max-w-[92%] sm:max-w-[85%] md:max-w-[75%]">
                       <textarea
                         ref={editTextareaRef}
                         value={editingContent}
@@ -352,7 +387,7 @@ export default function MessageList({
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={onCancelEdit} className="rounded-full bg-[var(--oa-paper-soft)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-muted)]">取消</button>
+                      <button onClick={onCancelEdit} className="rounded-full bg-[var(--oa-paper-soft)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--oa-border)]">取消</button>
                       <button onClick={() => onSubmitEdit(i)} className="ai-primary-action rounded-full px-3 py-1.5 text-xs transition-colors">提交</button>
                     </div>
                   </div>
@@ -362,7 +397,7 @@ export default function MessageList({
                       <div
                         className={`relative group/bubble px-4 py-3 sm:px-5 sm:py-4 transition-all duration-300 ${
                           msg.role === "user" ? "msg-bubble-user max-w-[92%] sm:max-w-[85%] md:max-w-[75%]" : `msg-bubble-ai ${hasTableContent ? "w-full" : "w-full md:max-w-[96%]"}`
-                        } ${msg.isStreaming ? "ai-glow ai-glow-active" : ""}`}
+                        }`}
                         onCopy={handleBubbleCopy}
                       >
                         {hasParts ? (
@@ -384,7 +419,6 @@ export default function MessageList({
                                       key={idx}
                                       enableHighlight={!msg.isStreaming}
                                       enableMath={true}
-                                      className={isUser ? "prose-invert" : ""}
                                     >
                                       {part.text}
                                     </Markdown>
@@ -398,7 +432,6 @@ export default function MessageList({
                           <Markdown
                             enableHighlight={!msg.isStreaming}
                             enableMath={true}
-                            className={msg.role === "user" ? "prose-invert" : ""}
                           >
                             {msg.content}
                           </Markdown>
@@ -410,7 +443,7 @@ export default function MessageList({
                     )}
 
                     {!msg.isStreaming && (
-                      <div className={`ai-message-actions mt-2 flex flex-wrap gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                      <div className={`ai-message-actions mt-2 flex flex-wrap gap-1 opacity-40 transition-opacity duration-200 group-hover:opacity-100 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                         {msg.role === "model" && (hasParts || hasVisibleContent) && (
                           <div className="relative" ref={openExportMenuIndex === i ? exportMenuRef : null}>
                             <button onClick={() => setOpenExportMenuIndex(prev => prev === i ? null : i)} className="ai-message-action" type="button">

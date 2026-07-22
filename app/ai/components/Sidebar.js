@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Copy,
+  MessageSquarePlus,
   Pencil,
   Pin,
   Plus,
@@ -66,7 +67,7 @@ function ConversationItem({
             }`}>
               <ModelGlyph model={conversation.model} size={16} />
             </span>
-            <span className="min-w-0 flex-1 pr-32">
+            <span className="min-w-0 flex-1 pr-28">
               <span className="block truncate text-sm font-semibold text-current">
                 {conversation.title}
               </span>
@@ -77,7 +78,7 @@ function ConversationItem({
             className={`absolute right-2 top-2 flex items-center gap-0.5 rounded-lg border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-1 transition-all ${
               activeActionsId === conversation._id
                 ? "opacity-100"
-                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
+                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 max-xl:pointer-events-auto max-xl:opacity-100"
             }`}
           >
             <button
@@ -327,8 +328,10 @@ function SidebarPanel({
           </div>
         ) : (
           <div className="flex items-start justify-center px-3 py-8">
-            <div className="w-full rounded-xl border border-dashed border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-6 text-center text-sm font-medium text-foreground">
-              暂无会话
+            <div className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-4 py-8 text-center">
+              <MessageSquarePlus size={20} className="text-[var(--oa-muted)]" />
+              <p className="text-sm font-medium text-[var(--oa-ink)]">暂无会话</p>
+              <p className="text-xs text-[var(--oa-muted)]">点击上方「新建对话」开始聊天</p>
             </div>
           </div>
         )}
@@ -413,7 +416,7 @@ export default function Sidebar({
       </aside>
 
       <aside className="hidden xl:block xl:w-[320px]">
-        <div className="sticky top-20 h-[calc(100dvh-8.5rem)] min-h-[32rem] w-full">
+        <div className="sticky top-[5.5rem] h-[calc(100dvh-7.5rem)] min-h-[32rem] w-full">
           <SidebarPanel {...panelProps} />
         </div>
       </aside>

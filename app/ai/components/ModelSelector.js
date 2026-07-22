@@ -30,6 +30,7 @@ export default function ModelSelector({
     const rect = triggerRef.current.getBoundingClientRect();
     const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
     const viewportWidth = window.visualViewport?.width || window.innerWidth;
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const viewportOffsetLeft = window.visualViewport?.offsetLeft || 0;
     const gap = 8;
     const padding = 12;
@@ -38,11 +39,17 @@ export default function ModelSelector({
       Math.max(viewportOffsetLeft + padding, rect.left + viewportOffsetLeft),
       viewportOffsetLeft + viewportWidth - width - padding
     );
+    const contentHeight = menuRef.current?.offsetHeight || 420;
+    const spaceAbove = rect.top - padding - gap;
+    const spaceBelow = viewportHeight - rect.bottom - padding - gap;
+    const openDown = spaceAbove < 200 && spaceBelow > spaceAbove;
     const menuHeight = Math.min(
-      menuRef.current?.offsetHeight || 420,
-      Math.max(rect.top - padding - gap, 180)
+      contentHeight,
+      Math.max(openDown ? spaceBelow : spaceAbove, 160)
     );
-    const top = Math.max(viewportOffsetTop + padding, rect.top + viewportOffsetTop - menuHeight - gap);
+    const top = openDown
+      ? rect.bottom + viewportOffsetTop + gap
+      : Math.max(viewportOffsetTop + padding, rect.top + viewportOffsetTop - menuHeight - gap);
     setMenuStyle({
       left: `${left}px`,
       top: `${top}px`,
@@ -86,7 +93,7 @@ export default function ModelSelector({
             <span className="block h-4 w-4 rounded-sm bg-[var(--ai-panel-muted)]" aria-hidden />
           )}
         </span>
-        <span className={fullWidth ? "max-w-[148px] truncate" : "hidden max-w-[160px] truncate sm:inline-block"}>
+        <span className={fullWidth ? "max-w-[148px] truncate" : "max-w-[120px] truncate sm:max-w-[160px]"}>
           {currentModelLabel}
         </span>
       </button>

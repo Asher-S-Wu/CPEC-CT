@@ -120,7 +120,7 @@ export default function SystemPromptModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/20 p-4 backdrop-blur-sm sm:items-center sm:p-6"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:p-6"
           onClick={onClose}
         >
           <motion.div
@@ -128,7 +128,7 @@ export default function SystemPromptModal({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="ai-shell flex h-[calc(100dvh-2rem)] max-h-[800px] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] sm:h-[calc(100dvh-3rem)] md:flex-row"
+            className="ai-shell flex h-[calc(100dvh-2rem)] max-h-[800px] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] shadow-[var(--shadow-lg)] sm:h-[calc(100dvh-3rem)] md:flex-row"
           >
             {/* Left Panel: Presets */}
             <div className="flex h-1/3 w-full shrink-0 flex-col border-b border-[var(--oa-card-border)] bg-[var(--oa-paper-soft)] md:h-auto md:w-72 md:border-b-0 md:border-r lg:w-80">

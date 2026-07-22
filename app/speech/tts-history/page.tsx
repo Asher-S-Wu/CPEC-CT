@@ -209,12 +209,19 @@ export default function TTSHistoryPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex justify-end">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-[var(--oa-ink)]">生成历史</h2>
+          {!loading ? (
+            <p className="text-xs text-[var(--oa-muted)]">共 {history.length} 条记录</p>
+          ) : null}
+        </div>
         <Button
           onClick={fetchHistory}
           variant="outline"
           size="icon"
           disabled={loading}
+          aria-label="刷新"
         >
           <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
         </Button>

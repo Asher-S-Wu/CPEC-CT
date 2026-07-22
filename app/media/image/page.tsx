@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { ImagePlus, Sparkles, Upload, X } from 'lucide-react';
+import { ImagePlus, Loader2, Sparkles, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -127,7 +127,7 @@ export default function ImageGenerationPage() {
                 onClick={() => handleModeChange('generate')}
                 className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'generate'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
+                    ? 'bg-[var(--oa-elevated)] shadow-[var(--shadow-sm)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -139,7 +139,7 @@ export default function ImageGenerationPage() {
                 onClick={() => handleModeChange('edit')}
                 className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'edit'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
+                    ? 'bg-[var(--oa-elevated)] shadow-[var(--shadow-sm)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -202,7 +202,7 @@ export default function ImageGenerationPage() {
                 placeholder={mode === 'edit'
                   ? '描述你想修改的地方，例如：保留人物姿势，将背景改成夜晚街景，增加霓虹灯'
                   : '描述你想生成的画面，例如：夕阳下的城市天际线，电影感光影，细节清晰'}
-                className="min-h-[140px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+                className="min-h-[140px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2.5 text-sm text-[var(--oa-ink)] outline-none transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)]"
               />
               <div className="text-right text-xs text-[var(--oa-muted)]">
                 {prompt.length}/{IMAGE_PROMPT_MAX_LENGTH}
@@ -215,7 +215,7 @@ export default function ImageGenerationPage() {
                 id="image-size"
                 value={size}
                 onChange={(event) => setSize(event.target.value as ImageSize)}
-                className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+                className="h-10 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 text-sm text-[var(--oa-ink)] outline-none transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)]"
               >
                 {IMAGE_SIZE_OPTIONS.map((option) => (
                   <option key={option.id} value={option.id}>{option.label}</option>
@@ -224,7 +224,12 @@ export default function ImageGenerationPage() {
             </div>
 
             <Button type="submit" size="lg" className="w-full" disabled={isGenerating}>
-              {isGenerating ? '处理中...' : (
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  处理中...
+                </>
+              ) : (
                 <>
                   <Sparkles className="mr-2 h-5 w-5" />
                   {mode === 'edit' ? '编辑图片' : '生成图片'}

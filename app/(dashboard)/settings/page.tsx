@@ -5,9 +5,23 @@ import { UserRound } from "lucide-react";
 
 export default async function SettingsPage() {
   const current = await requirePageSession();
+  const initial = current.user.email.slice(0, 1).toUpperCase();
 
   return (
-    <div className="grid">
+    <div className="mx-auto grid w-full max-w-3xl gap-4">
+      {/* 用户 hero 区：首字母头像 + 邮箱 + 角色 */}
+      <Card>
+        <CardContent className="flex items-center gap-4 pt-6">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--oa-ink)] text-lg font-semibold text-[var(--oa-paper)]">
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold text-[var(--oa-ink)]">{current.user.email}</p>
+            <p className="mt-1 text-xs text-[var(--oa-muted)]">{formatRoleLabel(current.user.role)}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">

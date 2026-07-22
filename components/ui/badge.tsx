@@ -16,9 +16,9 @@ const badgeVariants = cva(
           "border-transparent bg-[var(--oa-danger)] text-destructive-foreground",
         outline: "border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--oa-muted)]",
         success:
-          "border-[rgba(22,163,74,0.22)] bg-[rgba(22,163,74,0.08)] text-[var(--oa-green)]",
+          "border-[hsl(var(--success-border))] bg-[hsl(var(--success-light))] text-[var(--oa-green)]",
         warning:
-          "border-[rgba(202,138,4,0.24)] bg-[rgba(202,138,4,0.1)] text-[var(--oa-gold)]",
+          "border-[hsl(var(--warning-border))] bg-[hsl(var(--warning-light))] text-[var(--oa-gold)]",
       },
     },
     defaultVariants: {

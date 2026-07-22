@@ -12,6 +12,84 @@ import { useConfirm } from '@/components/ui/confirm-provider';
 import { GridCardsLoading } from '@/components/layout/route-loading';
 import type { VoiceItem } from '@/types/audio/tts';
 
+const DEFAULT_PREVIEW_TEXT = '这是一段测试音频，用于预览声音效果。';
+
+// 单个声音卡片，独立持有预览文本 state，避免多卡片输入互相串联
+function VoiceCard({
+  voice,
+  playingVoice,
+  onPlay,
+  onDelete,
+}: {
+  voice: VoiceItem;
+  playingVoice: string | null;
+  onPlay: (id: string, voiceId: string, model: string, text: string) => void;
+  onDelete: (voiceId: string) => void;
+}) {
+  const [previewText, setPreviewText] = useState(DEFAULT_PREVIEW_TEXT);
+
+  return (
+    <Card className="flex h-full flex-col">
+      <CardHeader>
+        <CardTitle>{voice.name}</CardTitle>
+        <CardDescription className="truncate">
+          {voice.description || '暂无描述'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col space-y-4">
+        <div className="space-y-2">
+          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
+            <span className="text-muted-foreground">声音ID</span>
+            <span className="min-w-0 break-all font-mono sm:text-right">{voice.voiceId}</span>
+          </div>
+          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
+            <span className="text-muted-foreground">语言</span>
+            <span className="break-words sm:text-right">{formatAudioLanguage(voice.language)}</span>
+          </div>
+          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
+            <span className="text-muted-foreground">模型</span>
+            <span className="min-w-0 break-all sm:text-right">{voice.model}</span>
+          </div>
+          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
+            <span className="text-muted-foreground">创建时间</span>
+            <span className="break-words sm:text-right">{new Date(voice.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">预览文本</label>
+          <Input
+            type="text"
+            value={previewText}
+            onChange={(e) => setPreviewText(e.target.value)}
+          />
+        </div>
+
+        <div className="mt-auto flex gap-2">
+          <Button
+            onClick={() => onPlay(voice.id, voice.voiceId, voice.model, previewText)}
+            variant="outline"
+            className="flex-1"
+            disabled={playingVoice !== null && playingVoice !== voice.id}
+          >
+            <Play className="mr-2 h-4 w-4" />
+            试听
+          </Button>
+          <Button
+            onClick={() => onDelete(voice.voiceId)}
+            variant="outline"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            aria-label="删除声音"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function MyVoicesPage() {
   const confirmAction = useConfirm();
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -19,7 +97,6 @@ export default function MyVoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
-  const [previewText, setPreviewText] = useState('这是一段测试音频，用于预览声音效果。');
 
   const fetchVoices = async () => {
     setLoading(true);
@@ -61,7 +138,7 @@ export default function MyVoicesPage() {
     }
   };
 
-  const handlePlay = async (id: string, voiceId: string, model: string) => {
+  const handlePlay = async (id: string, voiceId: string, model: string, text: string) => {
     if (playingVoice === id) {
       stopCurrentAudio();
       setPlayingVoice(null);
@@ -77,7 +154,7 @@ export default function MyVoicesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: previewText,
+          text,
           voiceId,
           model,
         }),
@@ -147,12 +224,19 @@ export default function MyVoicesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex justify-end">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-[var(--oa-ink)]">我的声音</h2>
+          {!loading ? (
+            <p className="text-xs text-[var(--oa-muted)]">共 {voices.length} 个声音</p>
+          ) : null}
+        </div>
         <Button
           onClick={fetchVoices}
           variant="outline"
           size="icon"
           disabled={loading}
+          aria-label="刷新"
         >
           <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
         </Button>
@@ -180,63 +264,13 @@ export default function MyVoicesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {voices.map((voice) => (
-            <Card key={voice.id}>
-              <CardHeader>
-                <CardTitle>{voice.name}</CardTitle>
-                <CardDescription className="truncate">
-                  {voice.description || '暂无描述'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
-                    <span className="text-muted-foreground">声音ID</span>
-                    <span className="min-w-0 break-all font-mono sm:text-right">{voice.voiceId}</span>
-                  </div>
-                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
-                    <span className="text-muted-foreground">语言</span>
-                    <span className="break-words sm:text-right">{formatAudioLanguage(voice.language)}</span>
-                  </div>
-                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
-                    <span className="text-muted-foreground">模型</span>
-                    <span className="min-w-0 break-all sm:text-right">{voice.model}</span>
-                  </div>
-                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
-                    <span className="text-muted-foreground">创建时间</span>
-                    <span className="break-words sm:text-right">{new Date(voice.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">预览文本</label>
-                  <Input
-                    type="text"
-                    value={previewText}
-                    onChange={(e) => setPreviewText(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handlePlay(voice.id, voice.voiceId, voice.model)}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={playingVoice !== null && playingVoice !== voice.id}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    试听
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(voice.voiceId)}
-                    variant="outline"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <VoiceCard
+              key={voice.id}
+              voice={voice}
+              playingVoice={playingVoice}
+              onPlay={handlePlay}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}

@@ -41,7 +41,7 @@ export default function SettingsMenu({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[55] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-[55] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 dark:bg-black/60"
               onClick={() => setShowSettings(false)}
             >
               <motion.div

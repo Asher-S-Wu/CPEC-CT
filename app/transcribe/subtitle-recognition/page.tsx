@@ -47,7 +47,7 @@ function Switch({
       <span
         className={`inline-block h-4 w-4 transform rounded-full transition-transform ${
           checked ? 'translate-x-6' : 'translate-x-1'
-        } ${checked ? 'bg-primary-foreground' : 'bg-[var(--oa-ink)]'}`}
+        } ${checked ? 'bg-primary-foreground' : 'bg-[var(--oa-paper)] border border-[var(--oa-control-border)]'}`}
       />
     </button>
   );
@@ -246,6 +246,28 @@ export default function SubtitleRecognitionPage() {
             }}
             disabled={isProcessing}
           />
+
+          {/* 识别语言对准确率影响最大，常显在设置折叠区之外 */}
+          <div className="mt-6 space-y-3">
+            <Label>识别语言</Label>
+            <div className="flex flex-wrap gap-2">
+              {LANGUAGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLanguage(option.value)}
+                  disabled={isProcessing}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                    language === option.value
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--oa-ink)] hover:border-[var(--oa-control-hover-border)]'
+                  } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -254,6 +276,7 @@ export default function SubtitleRecognitionPage() {
           type="button"
           onClick={() => setShowSettings(!showSettings)}
           disabled={isProcessing}
+          aria-expanded={showSettings}
           className={`flex w-full items-center justify-between text-left ${
             isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
           }`}
@@ -277,27 +300,6 @@ export default function SubtitleRecognitionPage() {
         </button>
         {showSettings ? (
           <CardContent className="mt-6 space-y-6">
-            <div className="space-y-3">
-              <Label>识别语言</Label>
-              <div className="flex flex-wrap gap-2">
-                {LANGUAGE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setLanguage(option.value)}
-                    disabled={isProcessing}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                      language === option.value
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] text-[var(--oa-ink)] hover:border-[var(--oa-control-hover-border)]'
-                    } ${isProcessing ? 'cursor-not-allowed opacity-50' : ''}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label>自动标点</Label>

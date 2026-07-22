@@ -31,12 +31,15 @@ export function FileUploader({
   const [uploadedFile, setUploadedFile] = useState(uploadedUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 大小限制文案统一从 maxSize prop 换算，避免写死
+  const maxSizeMb = Math.round(maxSize / (1024 * 1024));
+
   const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > maxSize) {
-      setError('文件大小超过20MB限制');
+      setError(`文件大小不能超过 ${maxSizeMb}MB`);
       return;
     }
 
@@ -119,7 +122,7 @@ export function FileUploader({
                 {isUploading ? '上传中...' : '选择文件'}
               </label>
               <p className="text-xs text-muted-foreground mt-2">
-                支持 MP3、M4A、WAV 格式，最大 20MB
+                支持 MP3、M4A、WAV 格式，最大 {maxSizeMb}MB
               </p>
             </div>
           </div>

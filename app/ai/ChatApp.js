@@ -24,6 +24,7 @@ export default function ChatApp({ initialUser }) {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [promptDraft, setPromptDraft] = useState(null);
   const mediaResolution = "MEDIA_RESOLUTION_HIGH";
   const {
     model,
@@ -687,6 +688,7 @@ export default function ChatApp({ initialUser }) {
       onDeleteUserMessage={actions.deleteUserMessage}
       onRegenerateModelMessage={actions.regenerateModelMessage}
       onStartEdit={actions.startEdit}
+      onSuggestionSelect={(text) => setPromptDraft({ text, id: Date.now() })}
       composerProps={{
         loading,
         isStreaming,
@@ -709,6 +711,8 @@ export default function ChatApp({ initialUser }) {
         deleteSystemPrompt,
         onSend: actions.handleSendFromComposer,
         onStop: actions.stopStreaming,
+        promptDraft,
+        onPromptDraftConsumed: () => setPromptDraft(null),
       }}
     />
   );

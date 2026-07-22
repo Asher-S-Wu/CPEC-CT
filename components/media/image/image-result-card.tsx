@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ImageIcon } from 'lucide-react';
+import { Download, ImageIcon } from 'lucide-react';
 
 interface ImageResultCardProps {
   imageUrl: string;
@@ -12,7 +12,7 @@ export function ImageResultCard({ imageUrl, title = '生成的图片' }: ImageRe
   if (!imageUrl) return null;
 
   return (
-    <Card>
+    <Card className="animate-fade-in-up">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ImageIcon className="h-5 w-5" />
@@ -30,8 +30,9 @@ export function ImageResultCard({ imageUrl, title = '生成的图片' }: ImageRe
         <a
           href={imageUrl}
           download
-          className="inline-flex text-sm font-medium text-[var(--oa-ink)] hover:underline"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2 text-xs font-medium text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-paper-soft)]"
         >
+          <Download className="h-4 w-4" />
           下载图片
         </a>
       </CardContent>

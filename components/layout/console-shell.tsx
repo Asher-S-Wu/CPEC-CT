@@ -23,7 +23,7 @@ export function ConsoleShell({ email, role, children, fullBleed = false }: Conso
       <main className="app-main flex flex-col">
         <Topbar email={email} role={role} onMenuClick={() => setDrawerOpen(true)} />
         <div className="app-content">
-          <div className={fullBleed ? "site-layout-content-full animate-fade-in" : "site-layout-content animate-fade-in"}>
+          <div className={fullBleed ? "site-layout-content-full" : "site-layout-content"}>
             {children}
           </div>
         </div>

@@ -10,7 +10,7 @@ export default function ChatHeader({
 }) {
   return (
     <header className="ai-chat-header relative z-20 shrink-0 px-4 py-4 md:px-6 md:py-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-4">
         <div className="flex min-w-0 items-center gap-3 md:gap-4">
           <button
             onClick={onToggleSidebar}

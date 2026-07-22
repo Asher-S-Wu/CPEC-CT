@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clapperboard } from 'lucide-react';
+import { Clapperboard, Download } from 'lucide-react';
 
 interface VideoResultCardProps {
   videoUrl: string;
@@ -11,7 +11,7 @@ export function VideoResultCard({ videoUrl }: VideoResultCardProps) {
   if (!videoUrl) return null;
 
   return (
-    <Card>
+    <Card className="animate-fade-in-up">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clapperboard className="h-5 w-5" />
@@ -30,8 +30,9 @@ export function VideoResultCard({ videoUrl }: VideoResultCardProps) {
         <a
           href={videoUrl}
           download
-          className="inline-flex text-sm font-medium text-[var(--oa-ink)] hover:underline"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2 text-xs font-medium text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-paper-soft)]"
         >
+          <Download className="h-4 w-4" />
           下载视频
         </a>
       </CardContent>

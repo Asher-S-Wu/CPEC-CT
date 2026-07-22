@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppThemeProvider } from "@/components/layout/app-theme-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-provider";
@@ -42,11 +42,20 @@ export const metadata: Metadata = {
   description: "AI 对话、语音合成与录音识别，AI 赋能数字融媒体创制"
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" }
+  ]
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <script dangerouslySetInnerHTML={{ __html: scrollbarScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

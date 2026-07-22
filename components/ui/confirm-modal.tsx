@@ -45,13 +45,13 @@ export default function ConfirmModal({
     }
   }, [open]);
 
-  // 键盘事件处理：Enter 确认，Escape 取消
+  // 键盘事件处理：Enter 确认（危险操作除外），Escape 取消
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (isProcessing) return;
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && !danger) {
         e.preventDefault();
         handleConfirm();
       } else if (e.key === "Escape") {
@@ -63,7 +63,7 @@ export default function ConfirmModal({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isProcessing]);
+  }, [open, isProcessing, danger]);
 
   return (
     <AnimatePresence>
@@ -75,17 +75,21 @@ export default function ConfirmModal({
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60" />
           <motion.div
+            role="alertdialog"
+            aria-modal="true"
+            aria-label={title}
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-6"
+            className="relative w-full max-w-sm rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] p-6 shadow-[var(--shadow-lg)]"
           >
             <button
               onClick={handleCancel}
               disabled={isProcessing}
+              aria-label="关闭"
               className="absolute right-4 top-4 text-[var(--oa-muted)] transition-colors hover:text-[var(--oa-ink)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X size={18} />

@@ -239,7 +239,7 @@ export default function ThinkingBlock({
                 ? <Terminal className="thinking-icon-step" />
                 : thoughtIcon;
 
-    const capsuleClass = `thinking-capsule flex w-fit max-w-full items-center gap-2 font-medium transition-all duration-300 py-1.5 px-3 rounded-full ${isError ? "border border-[var(--oa-red-soft-border)] bg-[var(--oa-red-soft-bg)] text-[var(--oa-red)]" : "bg-[var(--oa-paper-soft)] text-[var(--oa-muted)] hover:bg-[var(--oa-red-soft-bg)] hover:text-[var(--oa-blue)]"}`;
+    const capsuleClass = `thinking-capsule flex w-fit max-w-full items-center gap-2 font-medium transition-all duration-300 py-1.5 px-3 rounded-full ${isError ? "border border-[var(--oa-red-soft-border)] bg-[var(--oa-red-soft-bg)] text-[var(--oa-red)]" : "bg-[var(--oa-paper-soft)] text-[var(--oa-muted)] hover:bg-[var(--oa-border)] hover:text-[var(--oa-ink)]"}`;
 
     if (step.kind === "thought") {
       const hasContent = typeof step.content === "string" && step.content.trim();
@@ -285,13 +285,13 @@ export default function ThinkingBlock({
                   <Markdown
                     enableHighlight={!isThoughtStreaming}
                     enableMath={true}
-                    className="prose-xs text-[var(--oa-muted)]"
+                    className="text-[var(--oa-muted)]"
                   >
                     {thoughtDetailText}
                   </Markdown>
                   {isThoughtStreaming && (
                     <div className="sticky bottom-2 flex justify-end mt-2 pointer-events-none">
-                      <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[var(--oa-red-soft-border)] bg-[var(--oa-card-bg)] px-2.5 py-1 text-[10px] text-[var(--oa-blue)] shadow-sm backdrop-blur-md">
+                      <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-2.5 py-1 text-[10px] text-[var(--oa-blue)] shadow-sm backdrop-blur-md">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         思考过程中...
                       </div>
@@ -444,13 +444,13 @@ export default function ThinkingBlock({
                   <Markdown
                     enableHighlight={!isRunning}
                     enableMath={true}
-                    className="prose-xs text-[var(--oa-muted)]"
+                    className="text-[var(--oa-muted)]"
                   >
                     {step.content}
                   </Markdown>
                   {isRunning && (
                     <div className="sticky bottom-2 flex justify-end mt-2 pointer-events-none">
-                      <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[var(--oa-red-soft-border)] bg-[var(--oa-card-bg)] px-2.5 py-1 text-[10px] text-[var(--oa-blue)] shadow-sm backdrop-blur-md">
+                      <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-2.5 py-1 text-[10px] text-[var(--oa-blue)] shadow-sm backdrop-blur-md">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         思考过程中...
                       </div>
@@ -580,13 +580,13 @@ export default function ThinkingBlock({
                         <Markdown
                           enableHighlight={!isStreaming}
                           enableMath={true}
-                          className="thinking-prose prose-xs prose-code:text-xs"
+                          className="thinking-prose"
                         >
                           {safeThought}
                         </Markdown>
                         {isStreaming && (
                           <div className="sticky bottom-2 flex justify-end mt-2 pointer-events-none">
-                            <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[var(--oa-red-soft-border)] bg-[var(--oa-card-bg)] px-2.5 py-1 text-[10px] text-[var(--oa-blue)] shadow-sm backdrop-blur-md">
+                            <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-2.5 py-1 text-[10px] text-[var(--oa-blue)] shadow-sm backdrop-blur-md">
                               <Loader2 className="w-3 h-3 animate-spin" />
                               思考过程中...
                             </div>

@@ -23,7 +23,7 @@ interface NavLinksProps {
   pathname: string;
   layout: "sidebar" | "tabbar";
   onNavigate?: () => void;
-  tone?: "light" | "dark" | "sidebar";
+  tone?: "light" | "sidebar";
   collapsed?: boolean;
 }
 
@@ -67,10 +67,6 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
             ? active
               ? "bg-[var(--oa-sidebar-text)] text-[var(--oa-sidebar-bg)]"
               : "text-[var(--oa-sidebar-item)] hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
-            : tone === "dark"
-            ? active
-              ? "bg-primary text-primary-foreground"
-              : "text-white/70 hover:bg-white/10 hover:text-white"
             : active
               ? "bg-primary text-primary-foreground"
               : "text-[var(--oa-muted)] hover:bg-[var(--oa-paper-soft)] hover:text-[var(--oa-ink)]"
@@ -79,7 +75,7 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
         if (item.external) {
           return (
             <a key={item.href} href={item.href} onClick={onNavigate} className={itemClassName} title={collapsed ? item.label : undefined}>
-              <span className={cn("grid h-5 w-5 flex-shrink-0 place-items-center transition-opacity", active ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
+              <span className={cn("grid h-4 w-4 flex-shrink-0 place-items-center transition-opacity", active ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
                 {item.icon}
               </span>
               {!collapsed && item.label}
@@ -89,7 +85,7 @@ export function NavLinks({ items, pathname, layout, onNavigate, tone = "light", 
 
         return (
           <Link key={item.href} href={item.href as Route} prefetch={false} onClick={onNavigate} className={itemClassName} title={collapsed ? item.label : undefined}>
-            <span className={cn("grid h-5 w-5 flex-shrink-0 place-items-center transition-opacity", active ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
+            <span className={cn("grid h-4 w-4 flex-shrink-0 place-items-center transition-opacity", active ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>
               {item.icon}
             </span>
             {!collapsed && item.label}

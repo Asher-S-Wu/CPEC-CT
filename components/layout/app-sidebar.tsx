@@ -35,17 +35,17 @@ const navItems: SidebarNavSection[] = [
     section: "核心能力",
     icon: <LayoutDashboard className="h-3.5 w-3.5" />,
     items: [
-      { href: "/ai", label: "文本工具", icon: <Sparkles className="w-5 h-5" /> },
-      { href: "/media", label: "媒体工具", icon: <Clapperboard className="w-5 h-5" /> },
-      { href: "/speech", label: "语音合成", icon: <AudioLines className="w-5 h-5" /> },
-      { href: "/transcribe", label: "录音识别", icon: <Captions className="w-5 h-5" /> },
+      { href: "/ai", label: "文本工具", icon: <Sparkles className="h-4 w-4" /> },
+      { href: "/media", label: "媒体工具", icon: <Clapperboard className="h-4 w-4" /> },
+      { href: "/speech", label: "语音合成", icon: <AudioLines className="h-4 w-4" /> },
+      { href: "/transcribe", label: "录音识别", icon: <Captions className="h-4 w-4" /> },
     ],
   },
   {
     section: "设置",
     icon: <Settings className="h-3.5 w-3.5" />,
     items: [
-      { href: "/settings", label: "账号信息", icon: <Settings className="w-5 h-5" /> },
+      { href: "/settings", label: "账号信息", icon: <Settings className="h-4 w-4" /> },
     ],
   },
 ];
@@ -95,6 +95,7 @@ function SidebarContent({ onNavigate, collapsed }: { onNavigate?: () => void; co
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--oa-sidebar-item)] transition-colors hover:bg-[var(--oa-sidebar-hover-bg)] hover:text-[var(--oa-sidebar-text)]"
             title="切换主题"
+            aria-label={`当前主题：${themeOptions.find((o) => o.key === themeMode)?.label ?? "系统"}，点击切换`}
             onClick={() => {
               const modes: ThemeMode[] = ["light", "dark", "system"];
               const currentIndex = modes.indexOf(themeMode);
@@ -176,7 +177,14 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onCloseRef.current();
+      };
+      window.addEventListener("keydown", onKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", onKeyDown);
+      };
     }
   }, [open]);
 
@@ -185,14 +193,17 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
       {/* 遮罩 */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm transition-opacity duration-200 md:hidden",
+          "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-200 dark:bg-black/60 md:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={onClose}
       />
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="导航菜单"
         className={cn(
-          "app-sidebar fixed inset-y-0 left-0 z-50 flex w-64 max-w-[calc(100vw-1rem)] flex-col transition-transform duration-200 ease-out md:hidden",
+          "app-drawer md:hidden",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >

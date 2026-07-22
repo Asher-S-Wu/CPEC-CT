@@ -67,7 +67,7 @@ export default function Markdown({
 
   return (
     <div
-      className={`ai-markdown prose prose-sm max-w-none prose-code:before:content-none prose-code:after:content-none ${className}`}
+      className={`ai-markdown prose ${className}`}
     >
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
@@ -102,7 +102,7 @@ export default function Markdown({
                   <span>{lang || "code"}</span>
                   <CodeCopyButton text={String(children).replace(/\n$/, "")} />
                 </div>
-                <pre className="!m-0 !rounded-none overflow-x-auto bg-[#1a1a1a] p-4 text-[#fafafa] scrollbar-thin">
+                <pre className="!m-0 !rounded-none overflow-x-auto bg-[var(--ai-code-bg)] p-4 text-[#fafafa]">
                   <code className={`${className} !bg-transparent text-[13.5px] leading-relaxed`} {...props}>
                     {children}
                   </code>

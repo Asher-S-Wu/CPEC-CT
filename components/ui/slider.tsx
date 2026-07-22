@@ -38,7 +38,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
 
     return (
       <div className={cn('relative flex w-full touch-none select-none items-center', className)}>
-        <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-[var(--oa-muted)]">
+        <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-[var(--oa-border)]">
           <div
             className="absolute h-full bg-[var(--oa-ink)] transition-all"
             style={{ width: `${percentage}%` }}
@@ -59,7 +59,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
             [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--oa-ink)]
             [&::-webkit-slider-thumb]:bg-[var(--oa-paper)]
             [&::-webkit-slider-thumb]:transition-colors
-            [&::-webkit-slider-thumb]:hover:bg-accent
+            [&::-webkit-slider-thumb]:hover:bg-[var(--oa-paper-soft)]
             [&::-webkit-slider-thumb]:focus-visible:outline-none
             [&::-webkit-slider-thumb]:focus-visible:ring-2
             [&::-webkit-slider-thumb]:focus-visible:ring-ring
@@ -71,7 +71,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
             [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[var(--oa-ink)]
             [&::-moz-range-thumb]:bg-[var(--oa-paper)]
             [&::-moz-range-thumb]:transition-colors
-            [&::-moz-range-thumb]:hover:bg-accent
+            [&::-moz-range-thumb]:hover:bg-[var(--oa-paper-soft)]
             [&::-moz-range-thumb]:disabled:pointer-events-none
             [&::-moz-range-thumb]:disabled:opacity-50"
         />

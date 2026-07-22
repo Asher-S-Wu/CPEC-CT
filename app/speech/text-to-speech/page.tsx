@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { AudioResultCard } from '@/components/speech/text-to-speech/audio-result-card';
 import { SyncFields } from '@/components/speech/text-to-speech/sync-fields';
 import type { VoiceItem } from '@/types/audio/tts';
@@ -104,7 +104,10 @@ export default function TextToSpeechPage() {
           disabled={isGenerating}
         >
           {isGenerating ? (
-            '生成中...'
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              生成中...
+            </>
           ) : (
             <>
               <Sparkles className="mr-2 h-5 w-5" />

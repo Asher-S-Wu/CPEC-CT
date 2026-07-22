@@ -61,6 +61,8 @@ export default function Composer({
   deleteSystemPrompt,
   onSend,
   onStop,
+  promptDraft,
+  onPromptDraftConsumed,
 }) {
   const toast = useToast();
   const [input, setInput] = useState("");
@@ -93,10 +95,8 @@ export default function Composer({
       const vv = window.visualViewport;
       if (isMainInputFocused) {
         document.documentElement.style.setProperty("--app-height", `${Math.round(vv?.height)}px`);
-        document.documentElement.style.setProperty("--app-offset-top", `${Math.round(vv?.offsetTop)}px`);
       } else {
         document.documentElement.style.setProperty("--app-height", "100dvh");
-        document.documentElement.style.setProperty("--app-offset-top", "0px");
       }
     };
     setAppHeight();
@@ -110,6 +110,14 @@ export default function Composer({
       window.removeEventListener("resize", setAppHeight);
     };
   }, [isMainInputFocused]);
+
+  useEffect(() => {
+    if (!promptDraft) return;
+    setInput(promptDraft.text);
+    onPromptDraftConsumed?.();
+    textareaRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promptDraft]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -340,7 +348,7 @@ export default function Composer({
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            className="mb-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
+            className="mb-3 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4"
           >
             {selectedAttachments.map((item) => (
               <div
@@ -398,7 +406,7 @@ export default function Composer({
 
         <div className="px-4 py-3 md:px-5 md:py-4">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <div className="min-w-0 rounded-xl border border-[var(--ai-panel-border)] bg-[var(--oa-card-bg)] px-3 py-3 md:px-4">
+            <div className="min-w-0 rounded-xl bg-[var(--oa-card-bg)] px-3 py-3 md:px-4">
               {(selectedAttachments.length > 0 || isUploading) ? (
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                   <div className="flex flex-wrap items-center gap-2">

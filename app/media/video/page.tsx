@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { Clapperboard, ImagePlus, Sparkles, Upload, X } from 'lucide-react';
+import { Clapperboard, ImagePlus, Loader2, Sparkles, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -228,7 +228,7 @@ export default function VideoGenerationPage() {
                 onClick={() => handleModeChange('text')}
                 className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'text'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
+                    ? 'bg-[var(--oa-elevated)] shadow-[var(--shadow-sm)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -240,7 +240,7 @@ export default function VideoGenerationPage() {
                 onClick={() => handleModeChange('image')}
                 className={`flex h-11 items-center justify-center gap-2 rounded-[calc(0.5rem-2px)] text-sm font-medium transition ${
                   mode === 'image'
-                    ? 'bg-[var(--oa-card-bg)] text-[var(--oa-ink)]'
+                    ? 'bg-[var(--oa-elevated)] shadow-[var(--shadow-sm)] text-[var(--oa-ink)]'
                     : 'text-[var(--oa-muted)] hover:text-[var(--oa-ink)]'
                 }`}
               >
@@ -265,7 +265,7 @@ export default function VideoGenerationPage() {
                 placeholder={mode === 'image'
                   ? '描述画面如何运动，例如：人物缓慢转身，镜头轻微推进，背景灯光逐渐亮起'
                   : '描述你想生成的视频内容，例如：一只金毛犬在日落海滩上奔跑，镜头缓慢推进'}
-                className="min-h-[140px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 py-3 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+                className="min-h-[140px] w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 py-2.5 text-sm text-[var(--oa-ink)] outline-none transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)]"
               />
               <div className="text-right text-xs text-[var(--oa-muted)]">
                 {prompt.length}/{VIDEO_PROMPT_MAX_LENGTH}
@@ -280,7 +280,7 @@ export default function VideoGenerationPage() {
                     id="video-aspect"
                     value={aspectRatio}
                     onChange={(event) => setAspectRatio(event.target.value as VideoAspectRatio)}
-                    className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+                    className="h-10 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 text-sm text-[var(--oa-ink)] outline-none transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)]"
                   >
                     {VIDEO_ASPECT_RATIO_OPTIONS.map((option) => (
                       <option key={option.id} value={option.id}>{option.label}</option>
@@ -295,7 +295,7 @@ export default function VideoGenerationPage() {
                   id="video-duration"
                   value={durationSeconds}
                   onChange={(event) => setDurationSeconds(Number(event.target.value) as VideoDuration)}
-                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+                  className="h-10 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 text-sm text-[var(--oa-ink)] outline-none transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)]"
                 >
                   {VIDEO_DURATION_OPTIONS.map((option) => (
                     <option key={option.id} value={option.id}>{option.label}</option>
@@ -309,7 +309,7 @@ export default function VideoGenerationPage() {
                   id="video-resolution"
                   value={resolution}
                   onChange={(event) => setResolution(event.target.value as VideoResolution)}
-                  className="h-11 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-card-bg)] px-4 text-sm text-[var(--oa-ink)] outline-none focus:border-[var(--oa-ink)]"
+                  className="h-10 w-full rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] px-3 text-sm text-[var(--oa-ink)] outline-none transition-colors hover:border-[var(--oa-control-hover-border)] focus:border-[var(--oa-ink)]"
                 >
                   {VIDEO_RESOLUTION_OPTIONS.map((option) => (
                     <option key={option.id} value={option.id}>{option.label}</option>
@@ -323,7 +323,12 @@ export default function VideoGenerationPage() {
             </p>
 
             <Button type="submit" size="lg" className="w-full" disabled={isGenerating}>
-              {isGenerating ? '生成中，请稍候...' : (
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  生成中，请稍候...
+                </>
+              ) : (
                 <>
                   <Sparkles className="mr-2 h-5 w-5" />
                   生成视频

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,18 +67,18 @@ export function AuthForm({ returnTo, initialMode }: AuthFormProps) {
   return (
     <div className="auth-card">
       <div className="auth-brand text-center">
-        <BrandMark className="mx-auto mb-3 h-12 w-12 rounded-xl text-[28px]" />
+        <BrandMark className="mx-auto mb-3 h-12 w-12 rounded-xl" />
         <h1 className="auth-title text-[22px]">{APP_NAME}</h1>
         <p className="mt-2 text-sm font-medium text-[var(--oa-muted)]">{APP_TAGLINE}</p>
       </div>
 
-      <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg border border-border/80 bg-secondary/40 p-1">
+      <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-paper-soft)] p-1">
         <button
           type="button"
           onClick={() => switchMode("login")}
           className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
             !isRegister
-              ? "bg-primary text-primary-foreground"
+              ? "bg-[var(--oa-elevated)] text-[var(--oa-ink)] shadow-[var(--shadow-sm)]"
               : "text-[var(--oa-muted)] hover:text-[var(--oa-ink)]"
           }`}
         >
@@ -88,7 +89,7 @@ export function AuthForm({ returnTo, initialMode }: AuthFormProps) {
           onClick={() => switchMode("register")}
           className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
             isRegister
-              ? "bg-primary text-primary-foreground"
+              ? "bg-[var(--oa-elevated)] text-[var(--oa-ink)] shadow-[var(--shadow-sm)]"
               : "text-[var(--oa-muted)] hover:text-[var(--oa-ink)]"
           }`}
         >
@@ -143,6 +144,7 @@ export function AuthForm({ returnTo, initialMode }: AuthFormProps) {
         {error && <p className="error-text">{error}</p>}
 
         <Button type="submit" disabled={loading} className="mt-1 w-full">
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {loading ? "处理中…" : isRegister ? "注册并进入" : "登录"}
         </Button>
       </form>

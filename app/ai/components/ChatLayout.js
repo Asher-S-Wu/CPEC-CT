@@ -46,6 +46,7 @@ export default function ChatLayout({
   onDeleteUserMessage,
   onRegenerateModelMessage,
   onStartEdit,
+  onSuggestionSelect,
   composerProps,
 }) {
   const activeConversation = conversations.find((conversation) => conversation?._id === currentConversationId) || null;
@@ -62,7 +63,7 @@ export default function ChatLayout({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             type="button"
-            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm xl:hidden"
+            className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm dark:bg-black/60 xl:hidden"
             onClick={onCloseSidebar}
             aria-label="关闭侧栏"
           />
@@ -85,7 +86,7 @@ export default function ChatLayout({
           />
 
           <section className="ai-main-panel min-w-0">
-            <div className="ai-chat-board flex h-[calc(var(--app-height)-8.5rem)] min-h-[32rem] flex-col">
+            <div className="ai-chat-board flex h-[calc(var(--app-height)-5.5rem)] min-h-[24rem] flex-col md:h-[calc(var(--app-height)-7.5rem)] md:min-h-[32rem]">
               <ChatHeader
                 onToggleSidebar={onToggleSidebar}
                 conversationTitle={conversationTitle}
@@ -117,6 +118,7 @@ export default function ChatLayout({
                     onDeleteUserMessage={onDeleteUserMessage}
                     onRegenerateModelMessage={onRegenerateModelMessage}
                     onStartEdit={onStartEdit}
+                    onSuggestionSelect={onSuggestionSelect}
                     userNickname={nickname}
                   />
                 </div>

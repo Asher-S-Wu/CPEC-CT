@@ -54,20 +54,29 @@ export function Topbar({ email, role, onMenuClick }: TopbarProps) {
   const initials = email.slice(0, 2).toUpperCase();
   const breadcrumbs = buildBreadcrumbs(pathname);
   const pageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || "工作台";
+  const parentLabels = breadcrumbs
+    .slice(0, -1)
+    .map((b) => b.label)
+    .filter((label) => label !== pageTitle);
 
   return (
-    <header className="app-topbar md:min-h-[56px] md:px-8">
+    <header className="app-topbar">
       <div className="flex min-w-0 items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-paper-soft)] md:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--oa-control-border)] bg-[var(--oa-control-bg)] text-[var(--oa-ink)] transition-colors hover:bg-[var(--oa-paper-soft)] md:hidden"
           aria-label="打开菜单"
         >
           <Menu className="h-4 w-4" />
         </button>
 
-        <div className="min-w-0">
-          <h1 className="app-topbar-title truncate md:text-[18px]">
+        <div className="flex min-w-0 items-baseline gap-2">
+          {parentLabels.length > 0 && (
+            <span className="hidden shrink-0 text-xs text-[var(--oa-muted)] sm:block">
+              {parentLabels.join(" / ")}
+            </span>
+          )}
+          <h1 className="app-topbar-title truncate">
             {pageTitle}
           </h1>
         </div>
