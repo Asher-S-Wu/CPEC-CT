@@ -71,14 +71,8 @@ function normalizeFallbackToolTimeline(tools) {
         };
       }
 
-      if (apiName === "extract") {
-        const firstUrl = typeof tool.arguments?.url === "string" && tool.arguments.url
-          ? tool.arguments.url
-          : (
-            Array.isArray(tool.arguments?.urls)
-              ? tool.arguments.urls.find((item) => typeof item === "string" && item.trim())
-              : ""
-          ) || "";
+      if (apiName === "scrape") {
+        const firstUrl = typeof tool.arguments?.url === "string" ? tool.arguments.url : "";
 
         return {
           id: `timeline_${tool.id}`,
@@ -299,7 +293,7 @@ export default function MessageList({
             ? msg.thinkingTimeline
             : fallbackThinkingTimeline;
           const hasThinkingTimeline = Array.isArray(resolvedThinkingTimeline)
-            && resolvedThinkingTimeline.some((step) => step?.kind === "search" || step?.kind === "reader" || step?.kind === "sandbox" || step?.kind === "thought" || step?.kind === "upload" || step?.kind === "parse" || step?.kind === "tool" || step?.kind === "planner" || step?.kind === "writer");
+            && resolvedThinkingTimeline.some((step) => step?.kind === "search" || step?.kind === "reader" || step?.kind === "thought" || step?.kind === "upload" || step?.kind === "parse" || step?.kind === "tool" || step?.kind === "planner" || step?.kind === "writer");
           const hasToolRuns = Array.isArray(msg.tools) && msg.tools.length > 0;
           const hasArtifacts = Array.isArray(msg.artifacts) && msg.artifacts.length > 0;
           const shouldRenderToolCards = msg.role === "model" && hasToolRuns && !hasThinkingTimeline && msg.tools.some((t) => t?.id);

@@ -28,7 +28,6 @@ export default function ModelSelector({
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current || typeof window === "undefined") return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
     const viewportWidth = window.visualViewport?.width || window.innerWidth;
     const viewportOffsetLeft = window.visualViewport?.offsetLeft || 0;

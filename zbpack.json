@@ -1,0 +1,6 @@
+{
+  "$schema": "https://schema.zeabur.app/zbpack.json",
+  "install_command": "apt-get update && apt-get install -y --no-install-recommends antiword python3 python3-docx python3-openpyxl python3-pypdf2 python3-xlrd util-linux && rm -rf /var/lib/apt/lists/* && npm ci",
+  "build_command": "npm run lint && npm run build",
+  "start_command": "npm run start"
+}

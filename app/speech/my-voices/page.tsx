@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Music, Play, RefreshCw, Trash2 } from 'lucide-react';
 import { formatAudioLanguage } from '@/lib/audio/client/format';
 import { EmptyState } from '@/components/ui/page';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm-provider';
@@ -171,11 +171,11 @@ export default function MyVoicesPage() {
           icon={<Music className="h-6 w-6" />}
           title="还没有创建任何声音"
           description="前往声音克隆页面创建您的第一个声音。"
-          action={<Button asChild>
-            <Link href="/speech/voice-clone" prefetch={false}>
+          action={
+            <Link className={buttonVariants()} href="/speech/voice-clone" prefetch={false}>
               前往声音克隆
             </Link>
-          </Button>}
+          }
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

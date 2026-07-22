@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Noto_Sans_SC } from "next/font/google";
 import { AppThemeProvider } from "@/components/layout/app-theme-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-provider";
 import "./globals.css";
@@ -38,14 +37,6 @@ const themeInitScript = `
   })();
 `;
 
-const bodyFont = Noto_Sans_SC({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-  preload: false
-});
-
 export const metadata: Metadata = {
   title: "AI 业务工具",
   description: "AI 对话、语音合成与录音识别，AI 赋能数字融媒体创制"
@@ -59,7 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: scrollbarScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={bodyFont.variable}>
+      <body>
         <AppThemeProvider>
           <ConfirmProvider>{children}</ConfirmProvider>
         </AppThemeProvider>

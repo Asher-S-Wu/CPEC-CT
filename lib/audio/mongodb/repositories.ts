@@ -74,16 +74,31 @@ export class VoiceRepository {
     const collection = await this.getCollection();
 
     if (isValidObjectId(id)) {
-      await collection.deleteOne({
+      return collection.findOneAndDelete({
         _id: new ObjectId(id),
         userId: new ObjectId(userId),
       });
-    } else {
-      await collection.deleteOne({
-        voiceId: id,
-        userId: new ObjectId(userId),
-      });
     }
+    return collection.findOneAndDelete({
+      voiceId: id,
+      userId: new ObjectId(userId),
+    });
+  }
+
+  static async isFileReferenced(fileId: string, userId: string) {
+    const collection = await this.getCollection();
+    const reference = await collection.findOne(
+      {
+        userId: new ObjectId(userId),
+        $or: [
+          { sourceFileId: fileId },
+          { promptFileId: fileId },
+          { previewFileId: fileId },
+        ],
+      },
+      { projection: { _id: 1 } }
+    );
+    return Boolean(reference);
   }
 }
 
@@ -112,10 +127,19 @@ export class TTSHistoryRepository {
 
   static async delete(id: string, userId: string) {
     const collection = await this.getCollection();
-    await collection.deleteOne({
+    return collection.findOneAndDelete({
       _id: new ObjectId(id),
       userId: new ObjectId(userId),
     });
+  }
+
+  static async isFileReferenced(fileId: string, userId: string) {
+    const collection = await this.getCollection();
+    const reference = await collection.findOne(
+      { userId: new ObjectId(userId), audioFileId: fileId },
+      { projection: { _id: 1 } }
+    );
+    return Boolean(reference);
   }
 }
 
@@ -152,10 +176,22 @@ export class SubtitleHistoryRepository {
 
   static async delete(id: string, userId: string) {
     const collection = await this.getCollection();
-    await collection.deleteOne({
+    return collection.findOneAndDelete({
       _id: new ObjectId(id),
       userId: new ObjectId(userId),
     });
+  }
+
+  static async isFileReferenced(fileId: string, userId: string) {
+    const collection = await this.getCollection();
+    const reference = await collection.findOne(
+      {
+        userId: new ObjectId(userId),
+        $or: [{ fileId }, { sentencesFileId: fileId }],
+      },
+      { projection: { _id: 1 } }
+    );
+    return Boolean(reference);
   }
 }
 

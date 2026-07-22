@@ -13,7 +13,7 @@ import {
 import { formatDurationMs, formatRelativeTime } from '@/lib/client/date';
 import { downloadTextFile, safeFileStem } from '@/lib/client/download';
 import { EmptyState } from '@/components/ui/page';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useConfirm } from '@/components/ui/confirm-provider';
 import { ListCardsLoading } from '@/components/layout/route-loading';
@@ -175,11 +175,11 @@ export default function SubtitleHistoryPage() {
           icon={<Captions className="h-6 w-6" />}
           title="还没有识别记录"
           description="前往录音识别页面识别您的第一个文件。"
-          action={<Button asChild>
-            <Link href="/transcribe/subtitle-recognition" prefetch={false}>
+          action={
+            <Link className={buttonVariants()} href="/transcribe/subtitle-recognition" prefetch={false}>
               前往录音识别
             </Link>
-          </Button>}
+          }
         />
       ) : (
         <div className="space-y-4">

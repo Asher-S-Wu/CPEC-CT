@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const imageUrl = await generateAndStoreImage({
+      userId: session.userId,
       prompt,
       size: size as ImageSize,
       signal: request.signal,

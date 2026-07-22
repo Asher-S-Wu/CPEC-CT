@@ -45,7 +45,7 @@ export default function SystemPromptModal({
       await onChatSystemPromptSave(draft);
       toast.success(draft.trim() ? "系统提示词已生效" : "系统提示词已清除");
       onClose();
-    } catch (e) {
+    } catch {
       toast.error("保存失败");
     } finally {
       setSaving(false);
@@ -106,7 +106,7 @@ export default function SystemPromptModal({
       await deleteSystemPrompt(id);
       toast.success("已删除预设");
       if (editingId === id) setEditingId(null);
-    } catch (e) {
+    } catch {
       toast.error("删除失败");
     }
   };

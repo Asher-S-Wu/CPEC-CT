@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { put } from "@vercel/blob";
+import { saveStoredResponse } from "@/lib/storage/server";
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
@@ -19,42 +19,27 @@ function getExtFromMimeType(mimeType: string, fallback = "bin") {
   return MIME_TO_EXT[String(mimeType || "").toLowerCase()] || fallback;
 }
 
-async function putMediaBlob(filename: string, buffer: Buffer, contentType: string) {
-  const blob = await put(filename, buffer, {
-    access: "public",
-    contentType,
-  });
-
-  return {
-    url: blob.url,
-    blobUrl: blob.url,
-    mimeType: contentType,
-  };
-}
-
-export async function saveImageBuffer(input: ArrayBuffer | Uint8Array | Buffer, mimeType = "image/png") {
-  const ext = getExtFromMimeType(mimeType, "png");
-  const filename = makeFilename("media-image", ext);
-  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input instanceof ArrayBuffer ? new Uint8Array(input) : input);
-  return putMediaBlob(filename, buffer, mimeType);
-}
-
-export async function saveVideoBuffer(input: ArrayBuffer | Uint8Array | Buffer, mimeType = "video/mp4") {
-  const ext = getExtFromMimeType(mimeType, "mp4");
-  const filename = makeFilename("media-video", ext);
-  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input instanceof ArrayBuffer ? new Uint8Array(input) : input);
-  return putMediaBlob(filename, buffer, mimeType);
-}
-
-export async function saveMediaFromUrl(url: string, mimeType: string, prefix: "media-image" | "media-video") {
-  const response = await fetch(url);
+export async function saveMediaFromUrl(
+  userId: string,
+  url: string,
+  mimeType: string,
+  prefix: "media-image" | "media-video",
+  signal?: AbortSignal
+) {
+  const response = await fetch(url, { signal });
   if (!response.ok) {
     throw new Error(`下载媒体失败（${response.status}）`);
   }
-  const arrayBuffer = await response.arrayBuffer();
-  const contentType = response.headers.get("content-type") || mimeType;
-  if (prefix === "media-image") {
-    return saveImageBuffer(arrayBuffer, contentType);
-  }
-  return saveVideoBuffer(arrayBuffer, contentType);
+  const isImage = prefix === "media-image";
+  const extension = getExtFromMimeType(mimeType, isImage ? "png" : "mp4");
+  return saveStoredResponse(response, {
+    userId,
+    originalName: makeFilename(prefix, extension),
+    mimeType,
+    extension,
+    category: isImage ? "image" : "video",
+    scope: prefix,
+    maxBytes: isImage ? 100 * 1024 * 1024 : 1024 * 1024 * 1024,
+    signal,
+  });
 }

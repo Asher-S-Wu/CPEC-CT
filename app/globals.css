@@ -142,8 +142,8 @@
     --oa-danger-gradient: #dc2626;
     --oa-auth-bg: #ffffff;
     --oa-auth-bg-mobile: #ffffff;
-    --oa-title-font: var(--font-body), "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
-    --oa-body-font: var(--font-body), "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+    --oa-title-font: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+    --oa-body-font: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
 
     --ink: var(--oa-ink);
     --paper: var(--oa-paper);

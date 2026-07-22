@@ -2,7 +2,7 @@ import dbConnect from '@/lib/ai/db';
 import { ConversationStore as Conversation } from '@/lib/ai/server/store';
 import { getAuthPayload } from '@/lib/ai/auth';
 import { sanitizeImportedConversation } from '@/lib/ai/server/conversations/sanitize';
-import { enrichStoredMessagesWithBlobIds } from '@/lib/ai/server/conversations/blobReferences';
+import { resolveMessagesWithStoredFiles } from '@/lib/storage/access';
 import { MAX_REQUEST_BYTES } from '@/lib/ai/server/chat/routeConstants';
 import { logError } from '@/lib/logger';
 
@@ -47,9 +47,7 @@ export async function POST(req) {
 
         const conversationInput = sanitizeImportedConversation(body, 0, user.userId);
         if (Array.isArray(conversationInput.messages) && conversationInput.messages.length > 0) {
-            conversationInput.messages = await enrichStoredMessagesWithBlobIds(conversationInput.messages, {
-                userId: user.userId,
-            });
+            conversationInput.messages = await resolveMessagesWithStoredFiles(conversationInput.messages, user.userId);
         }
         const created = await Conversation.create({
             ...conversationInput,

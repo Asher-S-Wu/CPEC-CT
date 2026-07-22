@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       signal: request?.signal,
     });
     const saved = await saveAudioBuffer(
+      session.userId,
       generated.audioBuffer,
       getAudioMimeType(audioFormat),
       'tts-sync'
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       audio: saved.url,
+      audioFileId: saved.fileId,
       audioType: audioFormat,
       metadata: generated.raw?.extra_info,
     });

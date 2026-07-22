@@ -2,6 +2,7 @@ import {
   isNonEmptyString,
   getStoredPartsFromMessage,
 } from "@/app/api/ai/chat/utils";
+import { toAbsoluteFileUrl } from "@/lib/ai/shared/fileUrls";
 import { buildAttachmentTextBlock } from "@/lib/ai/server/files/service";
 import { getAttachmentInputType } from "@/lib/ai/shared/attachments";
 
@@ -20,9 +21,11 @@ async function storedPartToOpenAIContentPart(part, role, options = {}) {
 
   const imageUrl = part?.inlineData?.url;
   if (isNonEmptyString(imageUrl)) {
+    const providerImageUrl = toAbsoluteFileUrl(imageUrl, options.publicOrigin);
+    if (!providerImageUrl) throw new Error("图片地址无效");
     return {
       type: "image_url",
-      image_url: { url: imageUrl },
+      image_url: { url: providerImageUrl },
     };
   }
 
@@ -80,7 +83,7 @@ export async function buildChatMessagesFromHistory(messages, options = {}) {
   return result;
 }
 
-export async function buildCurrentUserMessage({ prompt, images, attachments, fileTextMap }) {
+export async function buildCurrentUserMessage({ prompt, images, attachments, fileTextMap, publicOrigin }) {
   const content = [];
   if (isNonEmptyString(prompt)) {
     content.push({ type: "text", text: prompt });
@@ -89,9 +92,11 @@ export async function buildCurrentUserMessage({ prompt, images, attachments, fil
   if (Array.isArray(images)) {
     for (const img of images) {
       if (!img?.url) continue;
+      const providerImageUrl = toAbsoluteFileUrl(img.url, publicOrigin);
+      if (!providerImageUrl) throw new Error("图片地址无效");
       content.push({
         type: "image_url",
-        image_url: { url: img.url },
+        image_url: { url: providerImageUrl },
       });
     }
   }

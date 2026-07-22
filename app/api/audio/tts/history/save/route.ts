@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { TTSHistoryRepository } from '@/lib/audio/mongodb/repositories';
-import { isValidAudioUrl } from '@/lib/audio/storage';
 import { DEFAULT_TTS_VOICE } from '@/lib/audio/client/tts-options';
 import { logError } from '@/lib/logger';
+import { findStoredFileByIdForUser, toStoredFileDescriptor } from '@/lib/storage/repository';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,27 +17,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { voiceId, text, audioUrl, model, parameters } = body;
+    const { voiceId, text, audioFileId, model, parameters } = body;
 
-    if (!text || !audioUrl || !model) {
+    if (!text || !audioFileId || !model) {
       return NextResponse.json(
         { success: false, message: '缺少必要参数' },
         { status: 400 }
       );
     }
 
-    if (typeof audioUrl !== 'string' || !isValidAudioUrl(audioUrl)) {
+    const audioFile = await findStoredFileByIdForUser(String(audioFileId), session.userId);
+    if (!audioFile || audioFile.category !== 'audio' || audioFile.scope !== 'tts') {
       return NextResponse.json(
-        { success: false, message: '音频地址无效' },
-        { status: 400 }
+        { success: false, message: '音频文件不存在或无权访问' },
+        { status: 404 }
       );
     }
+    const audioDescriptor = toStoredFileDescriptor(audioFile);
 
     await TTSHistoryRepository.create({
       userId: session.userId,
       voiceId: voiceId || DEFAULT_TTS_VOICE,
       text,
-      audioUrl,
+      audioFileId: audioDescriptor.fileId,
+      audioUrl: audioDescriptor.url,
       model,
       parameters: parameters || {},
     });

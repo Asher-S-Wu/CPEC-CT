@@ -19,11 +19,11 @@ import {
   loadConversationForRoute,
   rollbackConversationTurn,
 } from "@/app/api/ai/chat/conversationState";
+import { prepareDocumentAttachmentMapByFiles } from "@/lib/ai/server/files/service";
 import {
-  enrichConversationPartsWithBlobIds,
-  enrichStoredMessagesWithBlobIds,
-} from "@/lib/ai/server/conversations/blobReferences";
-import { prepareDocumentAttachmentMapByUrls } from "@/lib/ai/server/files/service";
+  resolveMessagesWithStoredFiles,
+  resolveStoredFileDescriptorsForUser,
+} from "@/lib/storage/access";
 import { buildDirectChatSystemPrompt } from "@/lib/ai/server/chat/systemPromptBuilder";
 import {
   parseSystemPrompt,
@@ -41,9 +41,9 @@ import {
   normalizeOpenAIError,
 } from "@/lib/ai/server/bailian/openai";
 import {
-  executeTavilyChatTool,
-  TAVILY_CHAT_TOOLS,
-} from "@/lib/ai/server/chat/tavilyTools";
+  executeFirecrawlChatTool,
+  FIRECRAWL_CHAT_TOOLS,
+} from "@/lib/ai/server/chat/firecrawlTools";
 import {
   buildChatMessagesFromHistory,
   buildCurrentUserMessage,
@@ -56,6 +56,7 @@ import {
   HEARTBEAT_INTERVAL_MS,
 } from "@/lib/ai/server/chat/routeConstants";
 import { logError } from "@/lib/logger";
+import { getPublicRequestOrigin } from "@/lib/request-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,6 +75,7 @@ export async function POST(req) {
   let providerDisplayName = "模型服务";
 
   try {
+    const publicOrigin = getPublicRequestOrigin(req);
     const contentLength = req.headers.get("content-length");
     if (contentLength && Number(contentLength) > MAX_REQUEST_BYTES) {
       return Response.json({ error: "Request too large" }, { status: 413 });
@@ -150,9 +152,30 @@ export async function POST(req) {
     const openAIClient = createBailianOpenAIClient();
     const apiModel = model;
 
-    const currentAttachments = Array.isArray(config?.attachments)
-      ? config.attachments.filter((item) => getAttachmentInputType(item?.category) === "file" && isNonEmptyString(item?.url))
-      : [];
+    let trustedHistory;
+    let currentAttachments = [];
+    let currentImages = [];
+    try {
+      trustedHistory = await resolveMessagesWithStoredFiles(sanitizeStoredMessagesStrict(history), user.userId);
+      const requestedAttachments = Array.isArray(config?.attachments)
+        ? config.attachments.filter((item) => getAttachmentInputType(item?.category) === "file")
+        : [];
+      const requestedImages = Array.isArray(config?.images) ? config.images : [];
+      currentAttachments = requestedAttachments.length
+        ? await resolveStoredFileDescriptorsForUser(requestedAttachments, user.userId)
+        : [];
+      currentImages = requestedImages.length
+        ? await resolveStoredFileDescriptorsForUser(requestedImages, user.userId)
+        : [];
+      if (currentAttachments.some((item) => getAttachmentInputType(item.category) !== "file")) {
+        throw new Error("文档附件类型无效");
+      }
+      if (currentImages.some((item) => item.category !== "image")) {
+        throw new Error("图片附件类型无效");
+      }
+    } catch (error) {
+      return Response.json({ error: error?.message || "附件无效" }, { status: 400 });
+    }
 
     const limit = Number.parseInt(historyLimit, 10);
     if (!Number.isFinite(limit) || limit < 0) {
@@ -166,12 +189,11 @@ export async function POST(req) {
     let chatMessages = [];
     let storedMessagesForRegenerate = null;
 
-    const collectAttachmentUrls = (msgs) => msgs.flatMap((msg) =>
+    const collectAttachmentFiles = (msgs) => msgs.flatMap((msg) =>
       Array.isArray(msg?.parts)
         ? msg.parts
           .map((part) => part?.fileData)
-          .filter((file) => getAttachmentInputType(file?.category) === "file" && isNonEmptyString(file?.url))
-          .map((file) => file.url)
+          .filter((file) => getAttachmentInputType(file?.category) === "file" && isNonEmptyString(file?.fileId))
         : []
     );
 
@@ -182,7 +204,7 @@ export async function POST(req) {
       } catch (e) {
         return Response.json({ error: e?.message || "messages invalid" }, { status: 400 });
       }
-      sanitized = await enrichStoredMessagesWithBlobIds(sanitized, { userId: user.userId });
+      sanitized = await resolveMessagesWithStoredFiles(sanitized, user.userId);
       const regenerateTime = new Date();
       const conv = await Conversation.findOneAndUpdate(
         { _id: currentConversationId, userId: user.userId },
@@ -198,16 +220,16 @@ export async function POST(req) {
       const currentTurn = Array.isArray(msgs) && msgs[msgs.length - 1]?.role === "user" ? [msgs[msgs.length - 1]] : [];
       const effectiveHistory = (limit > 0) ? historyBeforeCurrentPrompt.slice(-limit) : historyBeforeCurrentPrompt;
       const inputMessages = [...effectiveHistory, ...currentTurn];
-      const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(inputMessages), {
+      const fileTextMap = await prepareDocumentAttachmentMapByFiles(collectAttachmentFiles(inputMessages), {
         userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
       });
-      chatMessages = await buildChatMessagesFromHistory(inputMessages, { fileTextMap });
+      chatMessages = await buildChatMessagesFromHistory(inputMessages, { fileTextMap, publicOrigin });
     } else {
-      const effectiveHistory = (limit > 0) ? history.slice(-limit) : history;
-      const fileTextMap = await prepareDocumentAttachmentMapByUrls(collectAttachmentUrls(effectiveHistory), {
+      const effectiveHistory = (limit > 0) ? trustedHistory.slice(-limit) : trustedHistory;
+      const fileTextMap = await prepareDocumentAttachmentMapByFiles(collectAttachmentFiles(effectiveHistory), {
         userId: user.userId, conversationId: currentConversationId, signal: req?.signal,
       });
-      chatMessages = await buildChatMessagesFromHistory(effectiveHistory, { fileTextMap });
+      chatMessages = await buildChatMessagesFromHistory(effectiveHistory, { fileTextMap, publicOrigin });
     }
 
     const userSystemPrompt = parseSystemPrompt(config?.systemPrompt);
@@ -215,7 +237,7 @@ export async function POST(req) {
     const webSearchConfig = parseWebSearchConfig(config?.webSearch);
 
     if (user && !currentConversationId) {
-      const titleSource = isNonEmptyString(prompt) ? prompt : (currentAttachments[0]?.name || (config?.images?.length ? "图片对话" : "New Chat"));
+      const titleSource = isNonEmptyString(prompt) ? prompt : (currentAttachments[0]?.name || (currentImages.length ? "图片对话" : "New Chat"));
       const title = titleSource.length > 30 ? `${titleSource.substring(0, 30)}...` : titleSource;
       const newConv = await Conversation.create({
         userId: user.userId,
@@ -236,21 +258,20 @@ export async function POST(req) {
     if (!isRegenerateMode) {
       let fileTextMap = new Map();
       if (currentAttachments.length > 0) {
-        fileTextMap = await prepareDocumentAttachmentMapByUrls(
-          currentAttachments.map((item) => item.url),
+        fileTextMap = await prepareDocumentAttachmentMapByFiles(
+          currentAttachments,
           { userId: user.userId, conversationId: currentConversationId, signal: req?.signal }
         );
         attachmentEntries = currentAttachments.filter((item) => fileTextMap.has(item.url));
       }
-      if (Array.isArray(config?.images)) {
-        dbImageEntries = config.images.filter((img) => img?.url).map((img) => ({ url: img.url, mimeType: img.mimeType || "image/jpeg" }));
-      }
+      dbImageEntries = currentImages;
 
       const currentContent = await buildCurrentUserMessage({
         prompt,
-        images: config?.images,
+        images: currentImages,
         attachments: attachmentEntries,
         fileTextMap,
+        publicOrigin,
       });
       if (currentContent.length === 0) {
         return Response.json({ error: "请至少输入内容或上传附件" }, { status: 400 });
@@ -264,20 +285,19 @@ export async function POST(req) {
         const storedUserParts = [];
         if (isNonEmptyString(prompt)) storedUserParts.push({ text: prompt });
         for (const entry of dbImageEntries) {
-          storedUserParts.push({ inlineData: { mimeType: entry.mimeType, url: entry.url } });
+          storedUserParts.push({ inlineData: { fileId: entry.fileId, mimeType: entry.mimeType, url: entry.url } });
         }
         for (const attachment of attachmentEntries) {
           storedUserParts.push({
             fileData: {
-              url: attachment.url, name: attachment.name, mimeType: attachment.mimeType,
+              fileId: attachment.fileId, url: attachment.url, name: attachment.name, mimeType: attachment.mimeType,
               size: attachment.size, extension: attachment.extension, category: attachment.category,
             },
           });
         }
-        const enrichedStoredUserParts = await enrichConversationPartsWithBlobIds(storedUserParts, { userId: user.userId });
         const userMsgTime = new Date();
         const userMessage = {
-          id: resolvedUserMessageId, role: "user", content: prompt, type: "parts", parts: enrichedStoredUserParts,
+          id: resolvedUserMessageId, role: "user", content: prompt, type: "parts", parts: storedUserParts,
         };
         const updatedConv = await Conversation.findOneAndUpdate(
           { _id: currentConversationId, userId: user.userId },
@@ -359,7 +379,7 @@ export async function POST(req) {
                   system: systemPrompt,
                   stream: false,
                   reasoningEffort: "high",
-                  tools: TAVILY_CHAT_TOOLS,
+                  tools: FIRECRAWL_CHAT_TOOLS,
                   toolChoice: "auto",
                 }),
                 { signal: req?.signal }
@@ -420,24 +440,22 @@ export async function POST(req) {
                 } catch {
                   callArgs = {};
                 }
-                const isSearch = call?.function?.name === "tavily_search";
+                const isSearch = call?.function?.name === "firecrawl_search";
                 const query = typeof callArgs?.query === "string" ? callArgs.query.trim() : "";
-                const urls = Array.isArray(callArgs?.urls)
-                  ? callArgs.urls.map((item) => String(item).trim()).filter(Boolean)
-                  : [];
+                const url = typeof callArgs?.url === "string" ? callArgs.url.trim() : "";
 
                 sendEvent(isSearch
                   ? { type: "search_start", query, round, toolId: call.id }
-                  : { type: "page_fetch_start", url: urls[0] || "", round, toolId: call.id });
+                  : { type: "page_fetch_start", url, round, toolId: call.id });
 
                 let execution;
                 try {
-                  execution = await executeTavilyChatTool(call, { signal: req?.signal });
+                  execution = await executeFirecrawlChatTool(call);
                 } catch (toolError) {
-                  const message = toolError instanceof Error ? toolError.message : "Tavily 联网失败";
+                  const message = toolError instanceof Error ? toolError.message : "Firecrawl 联网失败";
                   sendEvent(isSearch
                     ? { type: "search_error", query, round, message, toolId: call.id }
-                    : { type: "page_fetch_error", url: urls[0] || "", round, message, toolId: call.id });
+                    : { type: "page_fetch_error", url, round, message, toolId: call.id });
                   throw toolError;
                 }
 
@@ -450,7 +468,7 @@ export async function POST(req) {
                 }));
                 sendEvent(execution.apiName === "search"
                   ? { type: "search_result", query: execution.args.query, round, results: publicResults, toolId: call.id }
-                  : { type: "page_fetch_result", url: execution.args.urls?.[0] || "", round, results: publicResults, toolId: call.id });
+                  : { type: "page_fetch_result", url: execution.args.url || "", round, results: publicResults, toolId: call.id });
 
                 const knownCitationUrls = new Set(finalCitations.map((item) => item.url));
                 for (const citation of execution.citations) {

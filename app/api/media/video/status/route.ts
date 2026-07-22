@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await fetchAndStoreVideoGenerationResult({
+      userId: session.userId,
       taskId,
       signal: request.signal,
     });

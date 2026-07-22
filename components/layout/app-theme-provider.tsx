@@ -41,28 +41,22 @@ export function useAppTheme() {
 
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(getInitialThemeMode);
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(getInitialResolvedTheme);
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getInitialResolvedTheme);
+  const resolvedTheme = themeMode === "system" ? systemTheme : themeMode;
 
   useEffect(() => {
-    const savedThemeMode = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (THEME_MODES.includes(savedThemeMode as ThemeMode)) {
-      setThemeModeState(savedThemeMode as ThemeMode);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (themeMode !== "system") {
-      setResolvedTheme(themeMode);
-      return undefined;
-    }
+    if (themeMode !== "system") return undefined;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const syncSystemTheme = () => setResolvedTheme(resolveSystemTheme());
+    const syncSystemTheme = () => setSystemTheme(resolveSystemTheme());
+    const frame = window.requestAnimationFrame(syncSystemTheme);
 
-    syncSystemTheme();
     mediaQuery.addEventListener("change", syncSystemTheme);
 
-    return () => mediaQuery.removeEventListener("change", syncSystemTheme);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      mediaQuery.removeEventListener("change", syncSystemTheme);
+    };
   }, [themeMode]);
 
   useEffect(() => {

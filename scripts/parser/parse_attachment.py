@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 MAX_VISUAL_ASSETS = 6
+MAX_VISUAL_ASSET_BYTES = 2 * 1024 * 1024
 MAX_TEXT_CHARS = 200000
 DEFAULT_MAX_PDF_PAGES = 120
 DEFAULT_MAX_SHEETS = 10
@@ -84,7 +85,7 @@ def parse_csv_file(
 
 
 def parse_pdf(file_path: Path, max_pages: int = DEFAULT_MAX_PDF_PAGES, **_kwargs):
-    from pypdf import PdfReader
+    from PyPDF2 import PdfReader
 
     reader = PdfReader(str(file_path))
     if max_pages and len(reader.pages) > max_pages:
@@ -119,7 +120,7 @@ def parse_docx(file_path: Path, **_kwargs):
             if len(visual_assets) >= MAX_VISUAL_ASSETS:
                 break
             data = archive.read(name)
-            if not data:
+            if not data or len(data) > MAX_VISUAL_ASSET_BYTES:
                 continue
             extension = Path(name).suffix.lower().lstrip(".")
             mime_type = {
@@ -156,7 +157,7 @@ def parse_doc(file_path: Path, **_kwargs):
             errors="ignore",
         )
     except FileNotFoundError as exc:
-        raise RuntimeError("当前沙箱不支持旧版 DOC 文件，请先转成 DOCX 再上传") from exc
+        raise RuntimeError("当前解析环境不支持旧版 DOC 文件，请先转成 DOCX 再上传") from exc
     text = completed.stdout or ""
     return {
         "text": clip_text(text),
@@ -210,7 +211,7 @@ def parse_xlsx(
             if len(visual_assets) >= MAX_VISUAL_ASSETS:
                 break
             data = archive.read(name)
-            if not data:
+            if not data or len(data) > MAX_VISUAL_ASSET_BYTES:
                 continue
             extension = Path(name).suffix.lower().lstrip(".")
             mime_type = {

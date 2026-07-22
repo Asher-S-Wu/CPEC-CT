@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { put } from '@vercel/blob';
+import { saveStoredBuffer } from '@/lib/storage/server';
 
 const AUDIO_MIME_TO_EXT: Record<string, string> = {
   'audio/mpeg': 'mp3',
@@ -39,34 +39,8 @@ export function getAudioMimeType(audioFormat?: string) {
   return AUDIO_FORMAT_TO_MIME[normalized] || 'audio/mpeg';
 }
 
-export function isHttpUrl(input: string) {
-  try {
-    const url = new URL(input);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-export function isValidAudioUrl(input: string) {
-  if (typeof input !== 'string') return false;
-  return isHttpUrl(input);
-}
-
-async function putAudioBlob(filename: string, buffer: Buffer, contentType: string) {
-  const blob = await put(filename, buffer, {
-    access: 'public',
-    contentType,
-  });
-
-  return {
-    url: blob.url,
-    blobUrl: blob.url,
-    mimeType: contentType,
-  };
-}
-
 export async function saveAudioBuffer(
+  userId: string,
   input: ArrayBuffer | Uint8Array | Buffer,
   mimeType: string,
   prefix = 'audio'
@@ -83,5 +57,14 @@ export async function saveAudioBuffer(
     buffer = Buffer.from(input);
   }
 
-  return putAudioBlob(filename, buffer, mimeType || getAudioMimeType(ext));
+  return saveStoredBuffer({
+    userId,
+    buffer,
+    originalName: filename,
+    mimeType: mimeType || getAudioMimeType(ext),
+    extension: ext,
+    category: 'audio',
+    scope: prefix.startsWith('voice-') ? 'voice' : 'tts',
+    maxBytes: 500 * 1024 * 1024,
+  });
 }

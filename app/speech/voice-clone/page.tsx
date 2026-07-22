@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AUDIO_LANGUAGE_OPTIONS } from '@/lib/audio/client/format';
+import type { StoredFileDescriptor } from '@/lib/storage/types';
 
 export default function VoiceClonePage() {
   const router = useRouter();
@@ -16,8 +17,8 @@ export default function VoiceClonePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [sourceFile, setSourceFile] = useState<{ url: string; blobUrl: string }>();
-  const [promptFile, setPromptFile] = useState<{ url: string; blobUrl: string }>();
+  const [sourceFile, setSourceFile] = useState<StoredFileDescriptor>();
+  const [promptFile, setPromptFile] = useState<StoredFileDescriptor>();
 
   const generateVoiceId = () => {
     const timestamp = Date.now().toString(36);
@@ -61,14 +62,14 @@ export default function VoiceClonePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sourceBlobUrl: sourceFile.blobUrl,
+          sourceFileId: sourceFile.fileId,
           voiceId: formData.voiceId,
           name: formData.name,
           description: formData.description,
           previewText: formData.previewText,
           language: formData.language,
           ...(promptFile && formData.promptText.trim()
-            ? { promptBlobUrl: promptFile.blobUrl, promptText: formData.promptText.trim() }
+            ? { promptFileId: promptFile.fileId, promptText: formData.promptText.trim() }
             : {}),
         }),
       });
@@ -120,14 +121,14 @@ export default function VoiceClonePage() {
             <FileUploader
               label="源音频文件 *"
               description="10秒-5分钟，用于克隆的主要音频样本"
-              onUploadComplete={(url, blobUrl) => setSourceFile({ url, blobUrl })}
+              onUploadComplete={setSourceFile}
               onRemove={() => setSourceFile(undefined)}
             />
 
             <FileUploader
               label="示例音频（选填）"
               description="小于 8 秒的清晰示例，可提升克隆相似度与稳定性"
-              onUploadComplete={(url, blobUrl) => setPromptFile({ url, blobUrl })}
+              onUploadComplete={setPromptFile}
               onRemove={() => {
                 setPromptFile(undefined);
                 setFormData((prev) => ({ ...prev, promptText: '' }));

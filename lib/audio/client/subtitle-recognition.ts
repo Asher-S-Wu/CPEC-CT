@@ -45,8 +45,7 @@ export const TRANSLATE_OPTIONS: Array<{ value: TranslateLanguage; label: string 
 ];
 
 interface SubtitleRecognitionTaskInput {
-  fileUrl: string;
-  fileName: string;
+  fileId: string;
   mode: RecognitionMode;
   language: RecognitionLanguage;
   enableItn: boolean;
@@ -58,6 +57,7 @@ interface SubtitleRecognitionTaskInput {
 
 interface SubtitleRecognitionTask {
   sentencesUrl: string;
+  sentencesFileId: string;
   sentenceCount: number;
   durationMs: number;
 }
@@ -88,6 +88,7 @@ export async function createSubtitleRecognitionTask(input: SubtitleRecognitionTa
 
   return {
     sentencesUrl,
+    sentencesFileId: String(data.sentencesFileId || ''),
     sentenceCount: Number(data.sentenceCount) || 0,
     durationMs: Number(data.durationMs) || 0
   };
@@ -130,9 +131,8 @@ export async function translateSubtitleSentences(sentences: SubtitleSentence[], 
 }
 
 export async function saveSubtitleRecognitionHistory(input: {
-  fileName: string;
-  fileUrl: string;
-  sentencesUrl: string;
+  fileId: string;
+  sentencesFileId: string;
   sentenceCount: number;
   durationMs: number;
 }) {

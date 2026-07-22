@@ -6,7 +6,8 @@ const PUBLIC_API_PREFIXES = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
-  "/api/audio/blob/download"
+  "/api/health",
+  "/api/ready"
 ];
 
 function isStaticPath(pathname: string) {
@@ -58,7 +59,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (PUBLIC_PAGE_PATHS.has(pathname) || isPublicApi(pathname)) {
+  if (PUBLIC_PAGE_PATHS.has(pathname) || isPublicApi(pathname) || pathname.startsWith("/files/")) {
     return NextResponse.next();
   }
 
@@ -78,5 +79,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|aac)$).*)"]
+  matcher: ["/:path*"]
 };

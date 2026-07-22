@@ -3,21 +3,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Download, X } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { toBlobDownloadUrl } from "@/lib/ai/shared/blobUrls";
-
-function isHttpUrl(src) {
-  if (typeof src !== "string") return false;
-  try {
-    const u = new URL(src);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { toFileDownloadUrl } from "@/lib/ai/shared/fileUrls";
 
 export default function ImageLightbox({ open, onClose, src }) {
-  const downloadUrl = useMemo(() => toBlobDownloadUrl(src), [src]);
-  const canDownload = useMemo(() => isHttpUrl(src) && Boolean(downloadUrl), [downloadUrl, src]);
+  const downloadUrl = useMemo(() => toFileDownloadUrl(src), [src]);
+  const canDownload = Boolean(downloadUrl);
 
   useEffect(() => {
     if (!open) return;

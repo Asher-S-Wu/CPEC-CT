@@ -3,6 +3,9 @@ import { getSession } from '@/lib/audio/auth/session';
 import { createRecognitionTask, isBailianAsrError } from '@/lib/audio/bailian/asr';
 import { saveSubtitleSentences } from '@/lib/audio/subtitle/storage';
 import { logError } from '@/lib/logger';
+import { toAbsoluteFileUrl } from '@/lib/ai/shared/fileUrls';
+import { getPublicRequestOrigin } from '@/lib/request-origin';
+import { findStoredFileByIdForUser, toStoredFileDescriptor } from '@/lib/storage/repository';
 
 type RecognitionMode = 'text' | 'subtitle';
 type RecognitionLanguage = 'auto' | 'zh' | 'en' | 'ja';
@@ -28,8 +31,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
-      fileUrl,
-      fileName,
+      fileId,
       mode,
       language,
       enableItn,
@@ -39,18 +41,24 @@ export async function POST(request: NextRequest) {
       hotwords,
     } = body;
 
-    if (!fileUrl || typeof fileUrl !== 'string') {
+    if (!fileId || typeof fileId !== 'string') {
       return NextResponse.json(
-        { success: false, message: '缺少必要参数: fileUrl' },
+        { success: false, message: '缺少必要参数: fileId' },
         { status: 400 }
       );
     }
 
-    if (!fileName || typeof fileName !== 'string') {
+    const sourceFile = await findStoredFileByIdForUser(fileId, session.userId);
+    if (!sourceFile || sourceFile.category !== 'audio' || sourceFile.scope !== 'audio-source') {
       return NextResponse.json(
-        { success: false, message: '缺少必要参数: fileName' },
-        { status: 400 }
+        { success: false, message: '音频文件不存在或无权访问' },
+        { status: 404 }
       );
+    }
+    const sourceDescriptor = toStoredFileDescriptor(sourceFile);
+    const sourcePublicUrl = toAbsoluteFileUrl(sourceDescriptor.url, getPublicRequestOrigin(request));
+    if (!sourcePublicUrl) {
+      throw new Error('无法生成音频公开地址');
     }
 
     if (!isRecognitionMode(mode)) {
@@ -72,8 +80,8 @@ export async function POST(request: NextRequest) {
       : undefined;
 
     const result = await createRecognitionTask({
-      fileUrl,
-      fileName,
+      fileUrl: sourcePublicUrl,
+      fileName: sourceDescriptor.name,
       mode,
       language,
       enableItn: Boolean(enableItn),
@@ -81,6 +89,7 @@ export async function POST(request: NextRequest) {
       enableDdc: Boolean(enableDdc),
       enableSpeakerInfo: Boolean(enableSpeakerInfo),
       hotwords: normalizedHotwords,
+      signal: request.signal,
     });
 
     if (result.sentences.length === 0) {
@@ -97,6 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     const saved = await saveSubtitleSentences(
+      session.userId,
       result.sentences,
       `subtitle-${result.taskId}`
     );
@@ -107,6 +117,7 @@ export async function POST(request: NextRequest) {
       taskId: result.taskId,
       logId: result.logId,
       sentencesUrl: saved.url,
+      sentencesFileId: saved.fileId,
       sentenceCount: saved.sentenceCount,
       durationMs: saved.durationMs || result.durationMs,
     });

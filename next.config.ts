@@ -3,13 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
-  serverExternalPackages: ["@vercel/sandbox"],
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "500mb"
-    },
-    turbopackFileSystemCacheForDev: true
-  },
   async headers() {
     return [
       {

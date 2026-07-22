@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { SubtitleHistoryRepository } from '@/lib/audio/mongodb/repositories';
 import { logError } from '@/lib/logger';
+import { deleteStoredFile } from '@/lib/storage/server';
 
 export async function DELETE(
   request: NextRequest,
@@ -19,7 +20,15 @@ export async function DELETE(
 
     const { id } = await params;
 
-    await SubtitleHistoryRepository.delete(id, session.userId);
+    const history = await SubtitleHistoryRepository.delete(id, session.userId);
+    if (history) {
+      const fileIds = Array.from(new Set([history.fileId, history.sentencesFileId]));
+      await Promise.all(fileIds.map(async (fileId) => {
+        if (!await SubtitleHistoryRepository.isFileReferenced(fileId, session.userId)) {
+          await deleteStoredFile(fileId, session.userId);
+        }
+      }));
+    }
 
     return NextResponse.json({
       success: true,
@@ -64,7 +73,9 @@ export async function GET(
       item: {
         id: item._id!.toString(),
         fileName: item.fileName,
+        fileId: item.fileId,
         fileUrl: item.fileUrl,
+        sentencesFileId: item.sentencesFileId,
         sentencesUrl: item.sentencesUrl,
         sentenceCount: item.sentenceCount,
         durationMs: item.durationMs,

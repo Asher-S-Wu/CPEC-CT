@@ -44,12 +44,12 @@ export default function TextToSpeechPage() {
 
   const persistHistory = (
     form: { voiceId: string; text: string; model: string; languageType: string },
-    audioUrl: string
+    audioFileId: string
   ) => {
     return saveTtsHistory({
       voiceId: form.voiceId,
       text: form.text,
-      audioUrl,
+      audioFileId,
       model: form.model,
       languageType: form.languageType,
     });
@@ -73,9 +73,9 @@ export default function TextToSpeechPage() {
     setIsGenerating(true);
 
     try {
-      const audioSrc = await generateSyncTts(syncForm);
-      setAudioUrl(audioSrc);
-      await persistHistory(syncForm, audioSrc);
+      const audio = await generateSyncTts(syncForm);
+      setAudioUrl(audio.url);
+      await persistHistory(syncForm, audio.fileId);
     } catch (generateError) {
       setError(generateError instanceof Error ? generateError.message : '生成失败，请稍后重试');
     } finally {

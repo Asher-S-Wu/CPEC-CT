@@ -86,9 +86,11 @@ export async function submitVideoGeneration({
 }
 
 export async function fetchAndStoreVideoGenerationResult({
+  userId,
   taskId,
   signal,
 }: {
+  userId: string;
   taskId: string;
   signal?: AbortSignal;
 }) {
@@ -119,6 +121,6 @@ export async function fetchAndStoreVideoGenerationResult({
     throw new Error("视频生成完成，但没有返回可下载内容");
   }
 
-  const saved = await saveMediaFromUrl(videoUrl, "video/mp4", "media-video");
+  const saved = await saveMediaFromUrl(userId, videoUrl, "video/mp4", "media-video", signal);
   return { done: true as const, videoUrl: saved.url };
 }

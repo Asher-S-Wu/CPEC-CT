@@ -16,7 +16,6 @@ import {
   Sparkles,
   Clapperboard,
   X,
-  ChevronUp,
   ChevronLeft,
   Sun,
   Moon,

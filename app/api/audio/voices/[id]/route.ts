@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { VoiceRepository } from '@/lib/audio/mongodb/repositories';
 import { logError } from '@/lib/logger';
+import { deleteStoredFile } from '@/lib/storage/server';
 
 export async function DELETE(
   request: NextRequest,
@@ -19,7 +20,18 @@ export async function DELETE(
 
     const { id } = await params;
 
-    await VoiceRepository.delete(id, session.userId);
+    const voice = await VoiceRepository.delete(id, session.userId);
+    if (voice) {
+      const fileIds = Array.from(new Set(
+        [voice.sourceFileId, voice.promptFileId, voice.previewFileId]
+          .filter((value): value is string => Boolean(value))
+      ));
+      await Promise.all(fileIds.map(async (fileId) => {
+        if (!await VoiceRepository.isFileReferenced(fileId, session.userId)) {
+          await deleteStoredFile(fileId, session.userId);
+        }
+      }));
+    }
 
     return NextResponse.json({
       success: true,

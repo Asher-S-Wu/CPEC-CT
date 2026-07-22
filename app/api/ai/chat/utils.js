@@ -1,14 +1,9 @@
-import { normalizeBlobFileId } from '@/lib/ai/shared/blobFileIds';
+import { normalizeFileId } from '@/lib/ai/shared/fileIds';
+import { isStoredFileUrl } from '@/lib/ai/shared/fileUrls';
 
 /**
  * AI 聊天接口共用工具函数
  */
-
-const ALLOWED_IMAGE_DOMAINS = [
-    "blob.vercel-storage.com",
-    "public.blob.vercel-storage.com",
-    "dragoncode.codes",
-];
 
 const MAX_STORED_MESSAGES = 500;
 const MAX_STORED_MESSAGE_CHARS = 20000;
@@ -24,30 +19,9 @@ function createValidationError(message) {
     return err;
 }
 
-function isAllowedImageDomain(url) {
-    try {
-        const parsed = new URL(url);
-        const hostname = parsed.hostname.toLowerCase();
-        return ALLOWED_IMAGE_DOMAINS.some(
-            (domain) => hostname === domain || hostname.endsWith("." + domain)
-        );
-    } catch {
-        return false;
-    }
-}
-
-function isAllowedStoredImageUrl(url) {
-    if (typeof url !== "string" || !url.trim()) return false;
-    if (url.length > MAX_STORED_IMAGE_URL_CHARS) return false;
-    try {
-        const parsed = new URL(url);
-        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-            return false;
-        }
-    } catch {
-        return false;
-    }
-    return isAllowedImageDomain(url);
+function isAllowedStoredFileUrl(url) {
+    if (typeof url !== "string" || !url.trim() || url.length > MAX_STORED_IMAGE_URL_CHARS) return false;
+    return isStoredFileUrl(url);
 }
 
 export function isNonEmptyString(value) {
@@ -77,8 +51,8 @@ export function getStoredPartsFromMessage(msg, { includeThoughtSignature = false
                             url,
                             mimeType: isNonEmptyString(mimeType) ? mimeType : 'image/jpeg',
                         };
-                        const blobFileId = normalizeBlobFileId(part.inlineData.blobFileId);
-                        if (blobFileId) out.inlineData.blobFileId = blobFileId;
+                        const fileId = normalizeFileId(part.inlineData.fileId);
+                        if (fileId) out.inlineData.fileId = fileId;
                     }
                 }
                 if (part?.fileData && typeof part.fileData === 'object') {
@@ -97,8 +71,8 @@ export function getStoredPartsFromMessage(msg, { includeThoughtSignature = false
                             extension,
                             category,
                         };
-                        const blobFileId = normalizeBlobFileId(part.fileData.blobFileId);
-                        if (blobFileId) out.fileData.blobFileId = blobFileId;
+                        const fileId = normalizeFileId(part.fileData.fileId);
+                        if (fileId) out.fileData.fileId = fileId;
                     }
                 }
                 if (includeThoughtSignature && isNonEmptyString(part.thoughtSignature)) out.thoughtSignature = part.thoughtSignature;
@@ -111,26 +85,6 @@ export function getStoredPartsFromMessage(msg, { includeThoughtSignature = false
     const fallbackParts = [];
     if (isNonEmptyString(msg.content)) {
         fallbackParts.push({ text: msg.content });
-    }
-
-    if (msg.role === 'user') {
-        const pushImagePart = (url, mimeType) => {
-            if (!isNonEmptyString(url)) return;
-            fallbackParts.push({
-                inlineData: {
-                    url,
-                    mimeType: isNonEmptyString(mimeType) ? mimeType : 'image/jpeg',
-                },
-            });
-        };
-
-        if (Array.isArray(msg.images) && msg.images.length > 0) {
-            for (const url of msg.images) {
-                pushImagePart(url, msg.mimeType);
-            }
-        } else {
-            pushImagePart(msg.image, msg.mimeType);
-        }
     }
 
     return fallbackParts.length > 0 ? fallbackParts : null;
@@ -206,15 +160,15 @@ export function sanitizeStoredMessagesStrict(messages) {
             }
 
             if (part?.inlineData?.url) {
-                if (!isAllowedStoredImageUrl(part.inlineData.url)) {
+                if (!isAllowedStoredFileUrl(part.inlineData.url)) {
                     throw createValidationError(`messages[${i}].parts[${pi}].image invalid`);
                 }
-                if (part.inlineData.blobFileId !== undefined && !normalizeBlobFileId(part.inlineData.blobFileId)) {
-                    throw createValidationError(`messages[${i}].parts[${pi}].image blobFileId invalid`);
+                if (!normalizeFileId(part.inlineData.fileId)) {
+                    throw createValidationError(`messages[${i}].parts[${pi}].image fileId invalid`);
                 }
             }
             if (part?.fileData?.url) {
-                if (!isAllowedStoredImageUrl(part.fileData.url)) {
+                if (!isAllowedStoredFileUrl(part.fileData.url)) {
                     throw createValidationError(`messages[${i}].parts[${pi}].file invalid`);
                 }
                 if (!isNonEmptyString(part.fileData.name) || part.fileData.name.length > 200) {
@@ -232,8 +186,8 @@ export function sanitizeStoredMessagesStrict(messages) {
                 if (!Number.isFinite(Number(part.fileData.size)) || Number(part.fileData.size) < 0) {
                     throw createValidationError(`messages[${i}].parts[${pi}].file size invalid`);
                 }
-                if (part.fileData.blobFileId !== undefined && !normalizeBlobFileId(part.fileData.blobFileId)) {
-                    throw createValidationError(`messages[${i}].parts[${pi}].file blobFileId invalid`);
+                if (!normalizeFileId(part.fileData.fileId)) {
+                    throw createValidationError(`messages[${i}].parts[${pi}].file fileId invalid`);
                 }
             }
         }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
@@ -44,20 +44,14 @@ export default function Markdown({
   enableHighlight = true,
   enableMath = false,
 }) {
-  // 使用 ref 记住上一次的 enableHighlight 值，避免重复触发
-  const prevEnableRef = useRef(enableHighlight);
   const [actualHighlight, setActualHighlight] = useState(enableHighlight);
 
   useEffect(() => {
-    // 只有当从 false -> true 时才延迟启用，避免闪烁
-    if (!prevEnableRef.current && enableHighlight) {
-      const timer = setTimeout(() => setActualHighlight(true), 50);
-      prevEnableRef.current = enableHighlight;
-      return () => clearTimeout(timer);
-    }
-    // 其他情况直接同步
-    setActualHighlight(enableHighlight);
-    prevEnableRef.current = enableHighlight;
+    const timer = window.setTimeout(
+      () => setActualHighlight(enableHighlight),
+      enableHighlight ? 50 : 0
+    );
+    return () => window.clearTimeout(timer);
   }, [enableHighlight]);
 
   const remarkPlugins = enableMath ? [remarkMath, remarkGfm] : [remarkGfm];
@@ -94,7 +88,7 @@ export default function Markdown({
               <div className="table-cell-inner">{children}</div>
             </td>
           ),
-          code: ({ node, className, children, inline, ...props }) => {
+          code: ({ className, children, inline, ...props }) => {
             const match = /language-(\w+)/.exec(className || "");
             const lang = match ? match[1] : "";
             

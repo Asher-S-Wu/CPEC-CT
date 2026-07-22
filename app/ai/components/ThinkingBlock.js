@@ -23,7 +23,7 @@ function normalizeTimeline(timeline) {
       resultCount: Number.isFinite(step.resultCount) ? step.resultCount : null,
       synthetic: step.synthetic === true,
     }))
-    .filter((step) => step.kind === "thought" || step.kind === "search" || step.kind === "reader" || step.kind === "sandbox" || step.kind === "tool" || step.kind === "upload" || step.kind === "parse" || step.kind === "planner");
+    .filter((step) => step.kind === "thought" || step.kind === "search" || step.kind === "reader" || step.kind === "tool" || step.kind === "upload" || step.kind === "parse" || step.kind === "planner");
 
   return normalized.reduce((acc, step) => {
     const last = acc[acc.length - 1];
@@ -74,7 +74,6 @@ export default function ThinkingBlock({
   thought,
   isStreaming,
   isSearching,
-  searchQuery,
   searchError,
   timeline,
   tools,
@@ -83,10 +82,9 @@ export default function ThinkingBlock({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedTimelineId, setExpandedTimelineId] = useState(null);
+  const [manualExpandedStepId, setManualExpandedStepId] = useState(null);
   const containerRef = useRef(null);
   const autoCollapsedRef = useRef(false);
-  const manualExpandedStepIdRef = useRef(null);
-  const manualOpenMainRef = useRef(false);
   const safeThought = typeof thought === "string" ? thought : "";
   const safeBodyText = typeof bodyText === "string" ? bodyText : "";
   const safeSearchError = typeof searchError === "string" ? searchError : "";
@@ -113,15 +111,17 @@ export default function ThinkingBlock({
     if (!hasTimeline) return;
     if (autoCollapsedRef.current) return;
 
+    let frameId = 0;
+    const scheduleExpandedId = (value) => {
+      frameId = window.requestAnimationFrame(() => setExpandedTimelineId(value));
+    };
+
     const timelineForExpand = normalizeTimeline(timeline);
     const lastStep = timelineForExpand[timelineForExpand.length - 1] || null;
     if (lastStep && lastStep.kind !== "thought") {
-      if (manualExpandedStepIdRef.current) return;
-      setExpandedTimelineId((prev) => {
-        if (prev === null) return prev;
-        return null;
-      });
-      return;
+      if (manualExpandedStepId) return;
+      scheduleExpandedId(null);
+      return () => window.cancelAnimationFrame(frameId);
     }
 
     const lastThoughtStep = [...timelineForExpand]
@@ -129,19 +129,18 @@ export default function ThinkingBlock({
       .find((step) => step.kind === "thought");
 
     if (!lastThoughtStep?.id) return;
-    if (manualExpandedStepIdRef.current) return;
-    setExpandedTimelineId((prev) => {
-      if (prev === lastThoughtStep.id) return prev;
-      return lastThoughtStep.id;
-    });
-  }, [hasTimeline, timeline]);
+    if (manualExpandedStepId) return;
+    scheduleExpandedId(lastThoughtStep.id);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [hasTimeline, timeline, manualExpandedStepId]);
 
   // 简单模式：思考流式输出时自动展开内层思考气泡
   useEffect(() => {
     if (hasTimeline) return;
     if (autoCollapsedRef.current) return;
     if (isStreaming || safeThought) {
-      setExpandedTimelineId("__simple__");
+      const frameId = window.requestAnimationFrame(() => setExpandedTimelineId("__simple__"));
+      return () => window.cancelAnimationFrame(frameId);
     }
   }, [hasTimeline, isStreaming, safeThought]);
 
@@ -150,10 +149,12 @@ export default function ThinkingBlock({
     const currentLength = safeBodyText.length;
     if (currentLength > 0 && !autoCollapsedRef.current) {
       autoCollapsedRef.current = true;
-      manualExpandedStepIdRef.current = null;
-      manualOpenMainRef.current = false;
-      setCollapsed(true);
-      setExpandedTimelineId(null);
+      const frameId = window.requestAnimationFrame(() => {
+        setManualExpandedStepId(null);
+        setCollapsed(true);
+        setExpandedTimelineId(null);
+      });
+      return () => window.cancelAnimationFrame(frameId);
     }
     if (currentLength === 0) {
       autoCollapsedRef.current = false;
@@ -169,11 +170,9 @@ export default function ThinkingBlock({
   const activeThoughtLabel = "思考中";
   const completedThoughtLabel = "已思考";
   const toggleExpandedStep = (stepId) => {
-    setExpandedTimelineId((prev) => {
-      const nextId = prev === stepId ? null : stepId;
-      manualExpandedStepIdRef.current = nextId;
-      return nextId;
-    });
+    const nextId = expandedTimelineId === stepId ? null : stepId;
+    setManualExpandedStepId(nextId);
+    setExpandedTimelineId(nextId);
   };
 
   // ── 渲染时间线内的单个步骤（第二层折叠项）──
@@ -202,7 +201,6 @@ export default function ThinkingBlock({
       }
       if (step.kind === "planner") return isRunning ? "正在制定计划" : (isError ? "制定计划失败" : "执行计划已确定");
       if (step.kind === "writer") return isRunning ? "正在整理结果" : (isError ? "整理结果失败" : "最终结果已生成");
-      if (step.kind === "sandbox") return isRunning ? "正在准备运行环境" : (isError ? "运行环境准备失败" : "运行环境已准备完成");
       if (step.kind === "upload") return isRunning ? "正在上传文件" : (isError ? "文件上传失败" : "文件已上传");
       if (step.kind === "parse") return isRunning ? "正在解析文件" : (isError ? "文件解析失败" : "文件已解析");
       return "处理中";
@@ -214,12 +212,11 @@ export default function ThinkingBlock({
       if (step.kind === "reader") return Boolean(getDisplayHostname(step.url) || Number.isFinite(step.resultCount) || (isError && step.message));
       if (step.kind === "planner") return false;
       if (step.kind === "writer") return Boolean(step.content || step.message);
-      if (step.kind === "sandbox") return Boolean(step.content || (isError && (step.message || step.title)));
       if (step.kind === "upload" || step.kind === "parse") return false;
       return false;
     })();
     const isThoughtStreaming = step.status === "streaming";
-    const isManualExpanded = manualExpandedStepIdRef.current === step.id;
+    const isManualExpanded = manualExpandedStepId === step.id;
     const showThoughtDots = isThoughtStreaming && (!hasDetail || (isExpanded && !isManualExpanded));
 
     const thoughtIcon = <Lightbulb className="thinking-icon-step" />;
@@ -230,9 +227,7 @@ export default function ThinkingBlock({
       ? <Search className="thinking-icon-step" />
       : step.kind === "reader"
           ? <FileScan className="thinking-icon-step" />
-      : step.kind === "sandbox"
-        ? <Terminal className="thinking-icon-step" />
-        : step.kind === "planner"
+      : step.kind === "planner"
           ? <Scale className="thinking-icon-step" />
           : step.kind === "writer"
             ? <Zap className="thinking-icon-step" />
@@ -401,44 +396,6 @@ export default function ThinkingBlock({
       );
     }
 
-    if (step.kind === "sandbox") {
-      const detail = isError ? (step.message || step.title || "") : "";
-      const titleText = getTitle();
-      const isOpen = hasLinkedToolPreview && isExpanded;
-      return (
-        <div key={step.id || `sandbox-${idx}`} className="w-full max-w-full md:max-w-[760px]">
-          {hasLinkedToolPreview ? (
-            <button type="button" onClick={() => toggleExpandedStep(step.id)} className={capsuleClass}>
-              {icon}
-              <StepStatusText text={detail || titleText} active={isRunning} />
-              <div className="ml-auto flex items-center gap-1">
-                {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </div>
-            </button>
-          ) : (
-            <div className={capsuleClass}>
-              {icon}
-              <StepStatusText text={detail || titleText} active={isRunning} />
-            </div>
-          )}
-          <AnimatePresence>
-            {isOpen && linkedTool ? (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-2 ml-4 w-full max-w-[720px]">
-                  <ToolRunPreview tool={linkedTool} />
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
-      );
-    }
-
     if (step.kind === "planner") {
       const titleText = getTitle();
       return (
@@ -566,14 +523,7 @@ export default function ThinkingBlock({
   return (
     <div className="thinking-block mb-2 w-full max-w-full">
       <button
-        onClick={() => {
-          if (collapsed) {
-            manualOpenMainRef.current = true;
-          } else {
-            manualOpenMainRef.current = false;
-          }
-          setCollapsed(!collapsed);
-        }}
+        onClick={() => setCollapsed(!collapsed)}
         className="thinking-btn mb-1.5 flex items-center bg-[var(--oa-paper-soft)] font-medium text-[var(--oa-muted)] transition-colors hover:text-[var(--oa-ink)]"
       >
         {headerIcon}

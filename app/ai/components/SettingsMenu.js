@@ -107,7 +107,7 @@ export default function SettingsMenu({
                     >
                       <span className="flex items-center gap-2">
                         <Globe2 size={15} />
-                        {webSearch?.enabled ? "已开启 Tavily 联网" : "开启 Tavily 联网"}
+                        {webSearch?.enabled ? "已开启联网搜索" : "开启联网搜索"}
                       </span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         webSearch?.enabled

@@ -7,7 +7,7 @@ import { formatAudioLanguage, getAudioExtension } from '@/lib/audio/client/forma
 import { formatPlaybackTime, formatRelativeTime } from '@/lib/client/date';
 import { downloadUrlFile, safeFileStem } from '@/lib/client/download';
 import { EmptyState } from '@/components/ui/page';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { useConfirm } from '@/components/ui/confirm-provider';
@@ -233,11 +233,11 @@ export default function TTSHistoryPage() {
           icon={<FileAudio className="h-6 w-6" />}
           title="还没有生成记录"
           description="前往文本转语音页面生成您的第一个音频。"
-          action={<Button asChild>
-            <Link href="/speech/text-to-speech" prefetch={false}>
+          action={
+            <Link className={buttonVariants()} href="/speech/text-to-speech" prefetch={false}>
               前往文本转语音
             </Link>
-          </Button>}
+          }
         />
       ) : (
         <div className="space-y-4">

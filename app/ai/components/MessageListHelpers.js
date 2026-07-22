@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Download, ExternalLink, FileText, Search, Terminal, UserRound, X } from "lucide-react";
 import { ModelAvatar } from "./ModelVisuals";
 import { formatAttachmentMeta } from "@/lib/ai/shared/messageAttachments";
-import { toBlobDownloadUrl } from "@/lib/ai/shared/blobUrls";
+import { toFileDownloadUrl } from "@/lib/ai/shared/fileUrls";
 import {
   getWebBrowsingToolTitle,
   isWebBrowsingIdentifier,
@@ -187,10 +187,7 @@ export function Thumb({ src, className = "", onClick }) {
 
 export function AttachmentCard({ file, compact = false }) {
   if (!file?.name) return null;
-  const canDownload = typeof file.url === "string" && /^https?:\/\//i.test(file.url);
-  const downloadUrl = canDownload
-    ? toBlobDownloadUrl(file.url)
-    : null;
+  const downloadUrl = toFileDownloadUrl(file.url);
 
   return (
     <div className={`flex items-center gap-3 rounded-xl border border-[var(--oa-card-border)] bg-[var(--oa-card-bg)] px-3 py-2 ${compact ? "min-w-[220px]" : "min-w-[240px]"}`}>
@@ -310,8 +307,7 @@ export function Citations({ citations }) {
 }
 
 function buildArtifactDownloadUrl(artifact) {
-  if (typeof artifact?.url !== "string" || !/^https?:\/\//i.test(artifact.url)) return null;
-  return toBlobDownloadUrl(artifact.url);
+  return toFileDownloadUrl(artifact.url);
 }
 
 export function hasToolRunPreview(tool) {

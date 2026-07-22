@@ -1,14 +1,24 @@
+import { getEnv } from '@/lib/env';
+
 const MINIMAX_BASE_URL = 'https://api.minimaxi.com';
 
-function getApiKey(): string {
-  const key = process.env.MINIMAX_API_KEY?.trim();
-  if (!key) {
-    throw new Error('缺少 MINIMAX_API_KEY 环境变量');
-  }
-  return key;
+interface MiniMaxResponse {
+  base_resp?: {
+    status_code?: number;
+    status_msg?: string;
+  };
+  data?: {
+    audio?: string;
+  };
+  demo_audio?: string;
+  [key: string]: unknown;
 }
 
-function assertBaseResp(data: any, fallbackMessage: string) {
+function getApiKey(): string {
+  return getEnv().minimaxApiKey;
+}
+
+function assertBaseResp(data: MiniMaxResponse, fallbackMessage: string) {
   const statusCode = data?.base_resp?.status_code;
   if (typeof statusCode === 'number' && statusCode !== 0) {
     const error = new Error(data?.base_resp?.status_msg || fallbackMessage) as Error & { statusCode?: number };
@@ -18,11 +28,11 @@ function assertBaseResp(data: any, fallbackMessage: string) {
 }
 
 async function parseJsonBody(text: string) {
-  if (!text) return {};
+  if (!text) return {} as MiniMaxResponse;
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as MiniMaxResponse;
   } catch {
-    return { base_resp: { status_code: -1, status_msg: text } };
+    return { base_resp: { status_code: -1, status_msg: text } } as MiniMaxResponse;
   }
 }
 

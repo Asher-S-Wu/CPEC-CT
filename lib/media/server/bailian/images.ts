@@ -37,10 +37,12 @@ function extractImageUrl(payload: Record<string, unknown>) {
 }
 
 async function callQwenImage({
+  userId,
   content,
   size,
   signal,
 }: {
+  userId: string;
   content: Array<Record<string, string>>;
   size: ImageSize;
   signal?: AbortSignal;
@@ -65,20 +67,23 @@ async function callQwenImage({
   }) as Record<string, unknown>;
 
   const imageUrl = extractImageUrl(payload);
-  const saved = await saveMediaFromUrl(imageUrl, "image/png", "media-image");
+  const saved = await saveMediaFromUrl(userId, imageUrl, "image/png", "media-image", signal);
   return saved.url;
 }
 
 export async function generateAndStoreImage({
+  userId,
   prompt,
   size = "2048*2048",
   signal,
 }: {
+  userId: string;
   prompt: string;
   size?: ImageSize;
   signal?: AbortSignal;
 }) {
   return callQwenImage({
+    userId,
     content: [{ text: prompt }],
     size,
     signal,
@@ -86,17 +91,20 @@ export async function generateAndStoreImage({
 }
 
 export async function editAndStoreImage({
+  userId,
   prompt,
   image,
   size = "2048*2048",
   signal,
 }: {
+  userId: string;
   prompt: string;
   image: File;
   size?: ImageSize;
   signal?: AbortSignal;
 }) {
   return callQwenImage({
+    userId,
     content: [
       { image: await fileToDataUrl(image) },
       { text: prompt },

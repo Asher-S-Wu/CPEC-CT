@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { TTSHistoryRepository } from '@/lib/audio/mongodb/repositories';
 import { logError } from '@/lib/logger';
+import { deleteStoredFile } from '@/lib/storage/server';
 
 export async function DELETE(
   request: NextRequest,
@@ -18,7 +19,13 @@ export async function DELETE(
       );
     }
 
-    await TTSHistoryRepository.delete(id, session.userId);
+    const history = await TTSHistoryRepository.delete(id, session.userId);
+    if (
+      history?.audioFileId
+      && !await TTSHistoryRepository.isFileReferenced(history.audioFileId, session.userId)
+    ) {
+      await deleteStoredFile(history.audioFileId, session.userId);
+    }
 
     return NextResponse.json({
       success: true,

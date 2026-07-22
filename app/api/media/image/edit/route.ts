@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const imageUrl = await editAndStoreImage({
+      userId: session.userId,
       prompt,
       image,
       size: size as ImageSize,

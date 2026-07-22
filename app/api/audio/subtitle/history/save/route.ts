@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/audio/auth/session';
 import { SubtitleHistoryRepository } from '@/lib/audio/mongodb/repositories';
-import { isValidAudioUrl } from '@/lib/audio/storage';
 import { logError } from '@/lib/logger';
+import { findStoredFileByIdForUser, toStoredFileDescriptor } from '@/lib/storage/repository';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,32 +16,35 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fileName, fileUrl, sentencesUrl, sentenceCount, durationMs } = body;
+    const { fileId, sentencesFileId, sentenceCount, durationMs } = body;
 
-    if (!fileName || !fileUrl || !sentencesUrl) {
+    if (!fileId || !sentencesFileId) {
       return NextResponse.json(
         { success: false, message: '缺少必要参数' },
         { status: 400 }
       );
     }
 
-    if (
-      typeof fileUrl !== 'string' ||
-      typeof sentencesUrl !== 'string' ||
-      !isValidAudioUrl(fileUrl) ||
-      !isValidAudioUrl(sentencesUrl)
-    ) {
+    const [sourceFile, sentencesFile] = await Promise.all([
+      findStoredFileByIdForUser(String(fileId), session.userId),
+      findStoredFileByIdForUser(String(sentencesFileId), session.userId),
+    ]);
+    if (!sourceFile || sourceFile.category !== 'audio' || !sentencesFile || sentencesFile.scope !== 'subtitles') {
       return NextResponse.json(
-        { success: false, message: '文件地址无效' },
-        { status: 400 }
+        { success: false, message: '文件不存在或无权访问' },
+        { status: 404 }
       );
     }
+    const sourceDescriptor = toStoredFileDescriptor(sourceFile);
+    const sentencesDescriptor = toStoredFileDescriptor(sentencesFile);
 
     const id = await SubtitleHistoryRepository.create({
       userId: session.userId,
-      fileName,
-      fileUrl,
-      sentencesUrl,
+      fileName: sourceDescriptor.name,
+      fileId: sourceDescriptor.fileId,
+      fileUrl: sourceDescriptor.url,
+      sentencesFileId: sentencesDescriptor.fileId,
+      sentencesUrl: sentencesDescriptor.url,
       sentenceCount: Number(sentenceCount) || 0,
       durationMs: Number(durationMs) || 0,
     });

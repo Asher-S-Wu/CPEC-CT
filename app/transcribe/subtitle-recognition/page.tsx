@@ -57,7 +57,7 @@ export default function SubtitleRecognitionPage() {
   const isMounted = useRef(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [fileUrl, setFileUrl] = useState<string>();
+  const [fileId, setFileId] = useState<string>();
   const [fileName, setFileName] = useState<string>();
   const [sentences, setSentences] = useState<SubtitleSentence[]>([]);
 
@@ -95,7 +95,7 @@ export default function SubtitleRecognitionPage() {
   }, []);
 
   const handleStartRecognition = async () => {
-    if (!fileUrl || !fileName) {
+    if (!fileId || !fileName) {
       setError('请先上传音频文件');
       return;
     }
@@ -106,8 +106,7 @@ export default function SubtitleRecognitionPage() {
 
     try {
       const task = await createSubtitleRecognitionTask({
-        fileUrl,
-        fileName,
+        fileId,
         mode: recognitionMode,
         language,
         enableItn,
@@ -129,9 +128,8 @@ export default function SubtitleRecognitionPage() {
       setSentences(finalSentences);
 
       await saveSubtitleRecognitionHistory({
-        fileName,
-        fileUrl,
-        sentencesUrl: task.sentencesUrl,
+        fileId,
+        sentencesFileId: task.sentencesFileId,
         sentenceCount: task.sentenceCount || resultSentences.length,
         durationMs: task.durationMs,
       });
@@ -234,14 +232,14 @@ export default function SubtitleRecognitionPage() {
           <AudioUploader
             label="音频文件"
             description="请上传 mp3、wav、ogg 格式音频"
-            onUploadComplete={(url, name) => {
-              setFileUrl(url);
-              setFileName(name);
+            onUploadComplete={(file) => {
+              setFileId(file.fileId);
+              setFileName(file.name);
               setError('');
               setSentences([]);
             }}
             onRemove={() => {
-              setFileUrl(undefined);
+              setFileId(undefined);
               setFileName(undefined);
               setError('');
               setSentences([]);
@@ -392,7 +390,7 @@ export default function SubtitleRecognitionPage() {
         size="lg"
         className="w-full"
         onClick={handleStartRecognition}
-        disabled={!fileUrl || !fileName || isProcessing || isTranslating}
+        disabled={!fileId || !fileName || isProcessing || isTranslating}
       >
         {isProcessing ? (
           <>

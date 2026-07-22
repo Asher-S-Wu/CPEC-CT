@@ -41,17 +41,20 @@ export async function generateSyncTts(form: SyncTTSFormState) {
   if (!response.ok) {
     throw new Error(data.message || "生成失败");
   }
-  if (!data.audio) {
+  if (!data.audio || !data.audioFileId) {
     throw new Error("生成完成，但没有返回音频");
   }
 
-  return String(data.audio);
+  return {
+    url: String(data.audio),
+    fileId: String(data.audioFileId || ''),
+  };
 }
 
 export async function saveTtsHistory(input: {
   voiceId: string;
   text: string;
-  audioUrl: string;
+  audioFileId: string;
   model: string;
   languageType: string;
 }) {
@@ -61,7 +64,7 @@ export async function saveTtsHistory(input: {
     body: JSON.stringify({
       voiceId: input.voiceId || DEFAULT_TTS_VOICE,
       text: input.text,
-      audioUrl: input.audioUrl,
+      audioFileId: input.audioFileId,
       model: input.model,
       parameters: {
         languageType: input.languageType,

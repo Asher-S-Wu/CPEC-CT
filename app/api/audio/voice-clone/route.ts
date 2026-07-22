@@ -5,38 +5,30 @@ import { VoiceRepository } from '@/lib/audio/mongodb/repositories';
 import { saveAudioBuffer } from '@/lib/audio/storage';
 import { CLONE_PREVIEW_MODEL, DEFAULT_TTS_MODEL } from '@/lib/audio/client/tts-options';
 import { logError } from '@/lib/logger';
+import { readStoredFileBufferForUser } from '@/lib/storage/server';
+import { toStoredFileDescriptor } from '@/lib/storage/repository';
 
 const VOICE_ID_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{6,254}[A-Za-z0-9]$/;
 
-function extFromContentType(contentType: string | null): 'mp3' | 'm4a' | 'wav' {
-  const value = (contentType || '').toLowerCase();
-  if (value.includes('wav') || value.includes('wave')) return 'wav';
-  if (value.includes('mp4') || value.includes('m4a')) return 'm4a';
-  return 'mp3';
-}
-
-async function uploadBlobToMiniMax(
-  blobUrl: string,
+async function uploadStoredAudioToMiniMax(
+  storedFileId: string,
+  userId: string,
   purpose: 'voice_clone' | 'prompt_audio',
   filePrefix: string,
   signal?: AbortSignal
 ) {
-  const response = await fetch(blobUrl);
-  if (!response.ok) {
-    throw new Error('无法读取已上传的音频文件');
+  const resolved = await readStoredFileBufferForUser(storedFileId, userId, 20 * 1024 * 1024);
+  if (resolved.file.category !== 'audio' || resolved.file.scope !== 'voice') {
+    throw new Error('音频文件不存在或无权访问');
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const contentType = response.headers.get('content-type') || 'audio/mpeg';
-  const ext = extFromContentType(contentType);
-
-  return uploadFile({
-    buffer: arrayBuffer,
-    filename: `${filePrefix}.${ext}`,
-    contentType,
+  const providerFileId = await uploadFile({
+    buffer: resolved.buffer,
+    filename: `${filePrefix}.${resolved.file.extension}`,
+    contentType: resolved.file.mimeType,
     purpose,
     signal,
   });
+  return { providerFileId, storedFile: resolved.file };
 }
 
 export async function POST(request: NextRequest) {
@@ -52,26 +44,26 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
-      sourceBlobUrl,
+      sourceFileId,
       voiceId,
       name,
       description,
       previewText,
       language,
-      promptBlobUrl,
+      promptFileId,
       promptText,
     } = body;
 
-    if (!sourceBlobUrl || !voiceId || !name) {
+    if (!sourceFileId || !voiceId || !name) {
       return NextResponse.json(
         { success: false, message: '缺少必要参数' },
         { status: 400 }
       );
     }
 
-    if (typeof sourceBlobUrl !== 'string' || !sourceBlobUrl.startsWith('https://')) {
+    if (typeof sourceFileId !== 'string') {
       return NextResponse.json(
-        { success: false, message: '无效的音频地址' },
+        { success: false, message: '无效的音频文件' },
         { status: 400 }
       );
     }
@@ -83,42 +75,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const hasPrompt = typeof promptBlobUrl === 'string' && promptBlobUrl && typeof promptText === 'string' && promptText.trim();
-    if (hasPrompt && !promptBlobUrl.startsWith('https://')) {
-      return NextResponse.json(
-        { success: false, message: '无效的示例音频地址' },
-        { status: 400 }
-      );
-    }
+    const normalizedPromptFileId = typeof promptFileId === 'string' ? promptFileId.trim() : '';
+    const normalizedPromptText = typeof promptText === 'string' ? promptText.trim() : '';
+    const hasPrompt = Boolean(normalizedPromptFileId && normalizedPromptText);
 
-    const fileId = await uploadBlobToMiniMax(sourceBlobUrl, 'voice_clone', 'clone-source', request?.signal);
+    const sourceUpload = await uploadStoredAudioToMiniMax(
+      sourceFileId,
+      session.userId,
+      'voice_clone',
+      'clone-source',
+      request.signal
+    );
 
     let promptAudioId: string | undefined;
+    let promptStoredFile: typeof sourceUpload.storedFile | undefined;
     if (hasPrompt) {
-      promptAudioId = await uploadBlobToMiniMax(promptBlobUrl, 'prompt_audio', 'clone-prompt', request?.signal);
+      const promptUpload = await uploadStoredAudioToMiniMax(
+        normalizedPromptFileId,
+        session.userId,
+        'prompt_audio',
+        'clone-prompt',
+        request.signal
+      );
+      promptAudioId = promptUpload.providerFileId;
+      promptStoredFile = promptUpload.storedFile;
     }
 
     const trimmedPreview = typeof previewText === 'string' ? previewText.trim() : '';
     const cloneResult = await cloneVoice({
-      fileId,
+      fileId: sourceUpload.providerFileId,
       voiceId,
       previewText: trimmedPreview || undefined,
       model: trimmedPreview ? CLONE_PREVIEW_MODEL : undefined,
       languageBoost: 'auto',
       promptAudioId,
-      promptText: hasPrompt ? promptText.trim() : undefined,
+      promptText: hasPrompt ? normalizedPromptText : undefined,
       signal: request?.signal,
     });
 
     let previewAudioUrl = '';
+    let previewFileId = '';
     if (cloneResult.demoAudioUrl) {
       const downloaded = await downloadRemoteFile(cloneResult.demoAudioUrl, request?.signal);
       const saved = await saveAudioBuffer(
+        session.userId,
         downloaded.arrayBuffer,
         'audio/mpeg',
         'voice-clone-preview'
       );
       previewAudioUrl = saved.url;
+      previewFileId = saved.fileId;
     }
 
     const insertedId = await VoiceRepository.create({
@@ -126,11 +132,15 @@ export async function POST(request: NextRequest) {
       voiceId,
       name,
       description,
-      sourceAudioUrl: sourceBlobUrl,
-      promptText: hasPrompt ? promptText.trim() : undefined,
+      sourceFileId: sourceUpload.storedFile._id.toString(),
+      sourceAudioUrl: toStoredFileDescriptor(sourceUpload.storedFile).url,
+      promptFileId: promptStoredFile?._id.toString(),
+      promptAudioUrl: promptStoredFile ? toStoredFileDescriptor(promptStoredFile).url : undefined,
+      promptText: hasPrompt ? normalizedPromptText : undefined,
       model: DEFAULT_TTS_MODEL,
       provider: 'minimax',
       previewAudioUrl: previewAudioUrl || undefined,
+      previewFileId: previewFileId || undefined,
       language: language || 'zh',
     });
 

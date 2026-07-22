@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         id: item._id!.toString(),
         voiceId: item.voiceId,
         text: item.text,
+        audioFileId: item.audioFileId,
         audioUrl: item.audioUrl,
         model: item.model,
         parameters: item.parameters,

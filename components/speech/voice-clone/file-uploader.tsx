@@ -1,14 +1,14 @@
 'use client';
 
 import { useRef, useState, type ChangeEvent } from 'react';
-import { upload } from '@vercel/blob/client';
+import { uploadStoredFile } from '@/lib/storage/client';
+import type { StoredFileDescriptor } from '@/lib/storage/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X, FileAudio } from 'lucide-react';
 
 interface FileUploaderProps {
-  onUploadComplete: (proxyUrl: string, blobUrl: string) => void;
+  onUploadComplete: (file: StoredFileDescriptor) => void;
   onRemove?: () => void;
   accept?: string;
   maxSize?: number;
@@ -50,13 +50,10 @@ export function FileUploader({
     setIsUploading(true);
 
     try {
-      const blob = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/audio/upload',
-      });
+      const storedFile = await uploadStoredFile(file, { scope: 'voice' });
 
-      setUploadedFile(blob.url);
-      onUploadComplete(blob.url, blob.url);
+      setUploadedFile(storedFile.url);
+      onUploadComplete(storedFile);
     } catch (err) {
       setError((err as Error).message || '上传失败');
     } finally {

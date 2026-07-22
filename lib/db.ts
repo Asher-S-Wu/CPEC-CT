@@ -1,8 +1,9 @@
-import { MongoClient, ServerApiVersion, type Collection, type Db, type Document } from "mongodb";
+import { MongoClient, ServerApiVersion, type Collection, type Db } from "mongodb";
 import { getEnv } from "@/lib/env";
 import { logError } from "@/lib/logger";
 import type { SessionDoc, SystemStateDoc, UserDoc } from "@/types/domain";
 import type { SubtitleHistory, TTSHistory, Voice } from "@/types/audio/database";
+import type { StoredFileDoc } from "@/lib/storage/types";
 
 declare global {
   var mongoClientPromise: Promise<MongoClient> | undefined;
@@ -31,68 +32,6 @@ export async function getDb(): Promise<Db> {
   return client.db();
 }
 
-const LEGACY_CONVERSATION_MODELS = [
-  "qwen3.7-plus",
-  "wan2.7-image-pro",
-  "MiniMax-M3",
-  "image-01",
-];
-
-const INVALID_EMAIL_FILTER = {
-  $or: [
-    { email: { $exists: false } },
-    { email: null },
-    { email: "" },
-    { email: { $not: { $type: "string" as const } } },
-  ],
-};
-
-const INVALID_TOKEN_HASH_FILTER = {
-  $or: [
-    { tokenHash: { $exists: false } },
-    { tokenHash: null },
-    { tokenHash: "" },
-    { tokenHash: { $not: { $type: "string" as const } } },
-  ],
-};
-
-const INVALID_URL_FILTER = {
-  $or: [
-    { url: { $exists: false } },
-    { url: null },
-    { url: "" },
-    { url: { $not: { $type: "string" as const } } },
-  ],
-};
-
-async function dropIndexIfExists<TSchema extends Document>(collection: Collection<TSchema>, indexName: string) {
-  try {
-    await collection.dropIndex(indexName);
-  } catch {
-    // 索引不存在时忽略
-  }
-}
-
-async function purgeLegacyStudioData(db: Db) {
-  const users = db.collection<UserDoc>("users");
-  const sessions = db.collection<SessionDoc>("sessions");
-  const conversations = db.collection("ai_conversations");
-  const blobFiles = db.collection("ai_blob_files");
-
-  await Promise.all([
-    users.deleteMany(INVALID_EMAIL_FILTER),
-    sessions.deleteMany(INVALID_TOKEN_HASH_FILTER),
-    conversations.deleteMany({ model: { $in: LEGACY_CONVERSATION_MODELS } }),
-    blobFiles.deleteMany(INVALID_URL_FILTER),
-  ]);
-
-  await Promise.all([
-    dropIndexIfExists(users, "email_1"),
-    dropIndexIfExists(sessions, "tokenHash_1"),
-    dropIndexIfExists(blobFiles, "url_1"),
-  ]);
-}
-
 export async function ensureMongoIndexes() {
   if (global.studioIndexesReady) {
     return;
@@ -102,25 +41,32 @@ export async function ensureMongoIndexes() {
     global.studioIndexesPromise = (async () => {
       try {
         const db = await getDb();
-        await purgeLegacyStudioData(db);
         await Promise.all([
           db.collection<UserDoc>("users").createIndex({ email: 1 }, { unique: true }),
           db.collection<SessionDoc>("sessions").createIndex({ tokenHash: 1 }, { unique: true }),
           db.collection<SessionDoc>("sessions").createIndex({ userId: 1 }),
           db.collection<SystemStateDoc>("system_state").createIndex({ key: 1 }, { unique: true }),
           db.collection("voices").createIndex({ userId: 1, createdAt: -1 }),
+          db.collection("voices").createIndex({ userId: 1, sourceFileId: 1 }),
+          db.collection("voices").createIndex({ userId: 1, promptFileId: 1 }),
+          db.collection("voices").createIndex({ userId: 1, previewFileId: 1 }),
           db.collection("tts_history").createIndex({ userId: 1, createdAt: -1 }),
+          db.collection("tts_history").createIndex({ userId: 1, audioFileId: 1 }),
           db.collection("subtitle_history").createIndex({ userId: 1, createdAt: -1 }),
+          db.collection("subtitle_history").createIndex({ userId: 1, fileId: 1 }),
+          db.collection("subtitle_history").createIndex({ userId: 1, sentencesFileId: 1 }),
           db.collection("ai_conversations").createIndex({ userId: 1, updatedAt: -1 }),
           db.collection("ai_conversations").createIndex({ userId: 1, pinned: -1, updatedAt: -1 }),
           db.collection("ai_user_settings").createIndex({ userId: 1 }, { unique: true }),
-          db.collection("ai_blob_files").createIndex({ url: 1 }, { unique: true }),
-          db.collection("ai_blob_files").createIndex({ userId: 1, createdAt: -1 }),
-          db.collection("ai_blob_files").createIndex({ userId: 1, kind: 1, createdAt: -1 })
+          db.collection<StoredFileDoc>("stored_files").createIndex({ publicId: 1 }, { unique: true }),
+          db.collection<StoredFileDoc>("stored_files").createIndex({ relativePath: 1 }, { unique: true }),
+          db.collection<StoredFileDoc>("stored_files").createIndex({ userId: 1, createdAt: -1 }),
+          db.collection<StoredFileDoc>("stored_files").createIndex({ userId: 1, scope: 1, createdAt: -1 })
         ]);
         global.studioIndexesReady = true;
       } catch (error) {
         logError("mongo", "initialize indexes", error);
+        throw error;
       } finally {
         if (!global.studioIndexesReady) {
           global.studioIndexesPromise = undefined;
@@ -155,4 +101,9 @@ export async function ttsHistoryCollection(): Promise<Collection<TTSHistory>> {
 export async function subtitleHistoryCollection(): Promise<Collection<SubtitleHistory>> {
   await ensureMongoIndexes();
   return (await getDb()).collection<SubtitleHistory>("subtitle_history");
+}
+
+export async function storedFilesCollection(): Promise<Collection<StoredFileDoc>> {
+  await ensureMongoIndexes();
+  return (await getDb()).collection<StoredFileDoc>("stored_files");
 }

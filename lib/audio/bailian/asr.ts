@@ -11,6 +11,7 @@ const LANGUAGE_MAP = {
 type RecognitionLanguage = 'auto' | keyof typeof LANGUAGE_MAP;
 type RecognitionMode = 'text' | 'subtitle';
 type AudioFormat = 'mp3' | 'wav' | 'ogg';
+type PayloadPath = ReadonlyArray<string | number>;
 
 interface CreateRecognitionTaskInput {
   fileUrl: string;
@@ -22,6 +23,7 @@ interface CreateRecognitionTaskInput {
   enableDdc: boolean;
   enableSpeakerInfo: boolean;
   hotwords?: string[];
+  signal?: AbortSignal;
 }
 
 interface BailianAsrSuccessResult {
@@ -68,26 +70,52 @@ function normalizeHotwords(hotwords?: string[]) {
   return words.length > 0 ? words : undefined;
 }
 
-function normalizeSentence(item: any): SubtitleSentence {
-  const begin = item?.begin_time ?? item?.start_time ?? item?.start ?? 0;
-  const end = item?.end_time ?? item?.end_time ?? item?.end ?? 0;
-  const speaker = item?.speaker_id ?? item?.speaker ?? item?.speakerId;
+function readPayloadPath(payload: unknown, path: PayloadPath): unknown {
+  let current = payload;
+
+  for (const segment of path) {
+    if (typeof segment === 'number') {
+      if (!Array.isArray(current)) return undefined;
+      current = current[segment];
+      continue;
+    }
+
+    if (!current || typeof current !== 'object' || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return current;
+}
+
+function firstPayloadValue(payload: unknown, paths: ReadonlyArray<PayloadPath>): unknown {
+  for (const path of paths) {
+    const value = readPayloadPath(payload, path);
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function normalizeSentence(item: unknown): SubtitleSentence {
+  const begin = firstPayloadValue(item, [['begin_time'], ['start_time'], ['start']]) ?? 0;
+  const end = firstPayloadValue(item, [['end_time'], ['end']]) ?? 0;
+  const speaker = firstPayloadValue(item, [['speaker_id'], ['speaker'], ['speakerId']]);
+  const text = readPayloadPath(item, ['text']);
 
   return {
     begin_time: Number(begin) || 0,
     end_time: Number(end) || 0,
-    text: typeof item?.text === 'string' ? item.text.trim() : '',
+    text: typeof text === 'string' ? text.trim() : '',
     speaker_id: Number.isFinite(Number(speaker)) ? Number(speaker) : undefined,
   };
 }
 
-function collectSentences(payload: any): SubtitleSentence[] {
+function collectSentences(payload: unknown): SubtitleSentence[] {
   const candidates = [
-    payload?.sentences,
-    payload?.transcripts?.[0]?.sentences,
-    payload?.results?.[0]?.sentences,
-    payload?.output?.sentences,
-    payload?.output?.results?.[0]?.sentences,
+    readPayloadPath(payload, ['sentences']),
+    readPayloadPath(payload, ['transcripts', 0, 'sentences']),
+    readPayloadPath(payload, ['results', 0, 'sentences']),
+    readPayloadPath(payload, ['output', 'sentences']),
+    readPayloadPath(payload, ['output', 'results', 0, 'sentences']),
   ];
 
   for (const candidate of candidates) {
@@ -96,36 +124,39 @@ function collectSentences(payload: any): SubtitleSentence[] {
     }
   }
 
-  const text =
-    payload?.text ||
-    payload?.transcripts?.[0]?.text ||
-    payload?.results?.[0]?.text ||
-    payload?.output?.text ||
-    payload?.output?.results?.[0]?.text ||
-    '';
+  const text = firstPayloadValue(payload, [
+    ['text'],
+    ['transcripts', 0, 'text'],
+    ['results', 0, 'text'],
+    ['output', 'text'],
+    ['output', 'results', 0, 'text'],
+  ]);
 
   return typeof text === 'string' && text.trim()
     ? [{ begin_time: 0, end_time: 0, text: text.trim() }]
     : [];
 }
 
-function getDuration(payload: any) {
-  const value =
-    payload?.duration ||
-    payload?.audio_duration ||
-    payload?.audio_info?.duration ||
-    payload?.transcripts?.[0]?.duration ||
-    payload?.output?.duration ||
-    0;
+function getDuration(payload: unknown) {
+  const value = firstPayloadValue(payload, [
+    ['duration'],
+    ['audio_duration'],
+    ['audio_info', 'duration'],
+    ['transcripts', 0, 'duration'],
+    ['output', 'duration'],
+  ]);
   return Number(value) || 0;
 }
 
-async function fetchTranscriptionPayload(taskPayload: any, signal?: AbortSignal) {
-  const url =
-    taskPayload?.output?.results?.[0]?.transcription_url ||
-    taskPayload?.output?.transcription_url ||
-    taskPayload?.results?.[0]?.transcription_url ||
-    extractFirstUrl(taskPayload?.output);
+async function fetchTranscriptionPayload(taskPayload: unknown, signal?: AbortSignal): Promise<unknown> {
+  const directUrl = firstPayloadValue(taskPayload, [
+    ['output', 'results', 0, 'transcription_url'],
+    ['output', 'transcription_url'],
+    ['results', 0, 'transcription_url'],
+  ]);
+  const url = typeof directUrl === 'string'
+    ? directUrl
+    : extractFirstUrl(readPayloadPath(taskPayload, ['output']));
 
   if (!url) return taskPayload;
 
@@ -134,7 +165,7 @@ async function fetchTranscriptionPayload(taskPayload: any, signal?: AbortSignal)
     throw new BailianAsrError('识别结果下载失败', 502);
   }
 
-  return response.json();
+  return (await response.json()) as unknown;
 }
 
 export function isBailianAsrError(error: unknown): error is BailianAsrError {
@@ -158,15 +189,17 @@ export async function createRecognitionTask(input: CreateRecognitionTaskInput): 
     enableDdc: input.enableDdc,
     enableSpeakerInfo: speakerInfoEnabled,
     hotwords: normalizeHotwords(input.hotwords),
+    signal: input.signal,
   });
 
-  const taskPayload = await queryAsrTask(taskId);
-  const resultPayload = await fetchTranscriptionPayload(taskPayload);
+  const taskPayload = await queryAsrTask(taskId, input.signal);
+  const resultPayload = await fetchTranscriptionPayload(taskPayload, input.signal);
   const sentences = collectSentences(resultPayload);
+  const logId = readPayloadPath(taskPayload, ['request_id']);
 
   return {
     taskId,
-    logId: taskPayload?.request_id,
+    logId: typeof logId === 'string' ? logId : undefined,
     text: sentences.map((sentence) => sentence.text).join(''),
     durationMs: getDuration(resultPayload),
     sentences,

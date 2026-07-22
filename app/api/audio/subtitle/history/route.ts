@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
       history: history.map(item => ({
         id: item._id!.toString(),
         fileName: item.fileName,
+        fileId: item.fileId,
         fileUrl: item.fileUrl,
+        sentencesFileId: item.sentencesFileId,
         sentencesUrl: item.sentencesUrl,
         sentenceCount: item.sentenceCount,
         durationMs: item.durationMs,

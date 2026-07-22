@@ -4,12 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
   FileText,
-  Globe2,
   Paperclip,
   Square,
   X,
 } from "lucide-react";
-import { upload } from "@vercel/blob/client";
+import { uploadStoredFile } from "@/lib/storage/client";
 import { useToast } from "./ToastProvider";
 import ModelSelector from "./ModelSelector";
 import SettingsMenu from "./SettingsMenu";
@@ -52,7 +51,6 @@ export default function Composer({
   model,
   modelReady,
   onModelChange,
-  messages,
   webSearch,
   setWebSearch,
   chatSystemPrompt,
@@ -221,10 +219,12 @@ export default function Composer({
         nextAttachments.push({
           ...createLocalAttachment({ file: processedFile, preview }),
           uploadStatus: "uploading",
-          blobUrl: null,
+          fileUrl: null,
+          fileId: null,
+          uploadProgress: 0,
         });
       } else {
-        const att = { ...local, uploadStatus: "uploading", blobUrl: null };
+        const att = { ...local, uploadStatus: "uploading", fileUrl: null, fileId: null, uploadProgress: 0 };
         nextAttachments.push(att);
       }
     }
@@ -271,20 +271,22 @@ export default function Composer({
 
   const uploadAttachmentInBackground = async (att) => {
     try {
-      const blob = await upload(att.file.name, att.file, {
-        access: "public",
-        handleUploadUrl: "/api/ai/upload",
-        clientPayload: JSON.stringify({
-          kind: "chat",
-          model,
-          originalName: att.file.name,
-          declaredMimeType: att.file.type || att.mimeType,
-        }),
+      const storedFile = await uploadStoredFile(att.file, {
+        scope: "chat",
+        model,
+        onProgress: (uploadProgress) => {
+          if (!mountedRef.current) return;
+          setSelectedAttachments((prev) => prev.map((item) => (
+            item.id === att.id ? { ...item, uploadProgress } : item
+          )));
+        },
       });
       if (!mountedRef.current) return;
       setSelectedAttachments((prev) =>
         prev.map((item) =>
-          item.id === att.id ? { ...item, uploadStatus: "ready", blobUrl: blob.url } : item
+          item.id === att.id
+            ? { ...item, uploadStatus: "ready", fileUrl: storedFile.url, fileId: storedFile.fileId, uploadProgress: 100 }
+            : item
         )
       );
     } catch (err) {
@@ -357,7 +359,9 @@ export default function Composer({
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-[var(--text-primary)]">{item.name}</div>
                   <div className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                    {item.uploadStatus === "uploading" ? "上传中" : item.uploadStatus === "error" ? "上传失败" : "已就绪"}
+                    {item.uploadStatus === "uploading"
+                      ? `上传中 ${Number(item.uploadProgress) || 0}%`
+                      : item.uploadStatus === "error" ? "上传失败" : "已就绪"}
                   </div>
                 </div>
                 <button
